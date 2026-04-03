@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard — NexusBank{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)"><i class="bi bi-shield-lock"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="nb-sidebar__item active"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="{{ url_for('admin.users') }}" class="nb-sidebar__item"><i class="bi bi-people"></i> Users <span class="nb-sidebar__badge">{{ stats.pending_users }}</span></a>
+      <a href="{{ url_for('admin.employees') }}" class="nb-sidebar__item"><i class="bi bi-person-badge"></i> Employees <span class="nb-sidebar__badge" style="background:var(--nb-warning)">{{ stats.pending_employees }}</span></a>
+      <a href="{{ url_for('admin.appointments') }}" class="nb-sidebar__item"><i class="bi bi-calendar-week"></i> Appointments</a>
+      <a href="{{ url_for('admin.slots') }}" class="nb-sidebar__item"><i class="bi bi-clock-history"></i> Manage Slots</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)">A</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Admin</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">Admin Dashboard</div><div class="nb-topbar__subtitle">NexusBank Control Center</div></div>
+    </div>
+    <div class="nb-content">
+      <!-- Stats -->
+      <div class="nb-stats-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header"><div class="nb-stat-card__icon nb-stat-card__icon--blue"><i class="bi bi-people-fill"></i></div></div>
+          <div class="nb-stat-card__num">{{ stats.total_users }}</div>
+          <div class="nb-stat-card__label">Total Customers</div>
+          <div style="font-size:12px;color:var(--nb-warning);margin-top:4px">{{ stats.pending_users }} pending</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header"><div class="nb-stat-card__icon nb-stat-card__icon--purple"><i class="bi bi-person-badge-fill"></i></div></div>
+          <div class="nb-stat-card__num">{{ stats.total_employees }}</div>
+          <div class="nb-stat-card__label">Total Employees</div>
+          <div style="font-size:12px;color:var(--nb-warning);margin-top:4px">{{ stats.pending_employees }} pending</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header"><div class="nb-stat-card__icon nb-stat-card__icon--amber"><i class="bi bi-calendar-event-fill"></i></div></div>
+          <div class="nb-stat-card__num">{{ stats.total_appointments }}</div>
+          <div class="nb-stat-card__label">Total Bookings</div>
+          <div style="font-size:12px;color:var(--nb-warning);margin-top:4px">{{ stats.pending_appointments }} pending</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header"><div class="nb-stat-card__icon nb-stat-card__icon--green"><i class="bi bi-check-circle-fill"></i></div></div>
+          <div class="nb-stat-card__num">{{ stats.completed_appointments }}</div>
+          <div class="nb-stat-card__label">Completed Services</div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="nb-grid-2" style="margin-bottom:32px">
+        <div class="nb-card">
+          <div class="nb-card__header"><span class="nb-card__title">Bookings — Last 7 Days</span></div>
+          <div class="nb-card__body"><canvas id="dailyChart" height="200"></canvas></div>
+        </div>
+        <div class="nb-card">
+          <div class="nb-card__header"><span class="nb-card__title">Service Distribution</span></div>
+          <div class="nb-card__body"><canvas id="serviceChart" height="200"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Recent appointments -->
+      <div class="nb-table-card" style="margin-bottom:32px">
+        <div class="nb-table-card__header">
+          <span class="nb-table-card__title">Recent Appointments</span>
+          <a href="{{ url_for('admin.appointments') }}" class="btn-secondary btn-sm">View All</a>
+        </div>
+        <table class="nb-table">
+          <thead><tr><th>Customer</th><th>Service</th><th>Date & Time</th><th>Status</th><th>Staff</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for apt in recent_appointments %}
+            <tr>
+              <td><strong>{{ apt.user.username }}</strong><div style="font-size:12px;color:var(--nb-text-3)">{{ apt.user.email }}</div></td>
+              <td>{{ apt.service.replace('_',' ').title() }}</td>
+              <td>{{ apt.slot.date }}<div style="font-size:12px;color:var(--nb-text-3)">{{ apt.slot.time }}</div></td>
+              <td><span class="nb-badge nb-badge--{{ apt.status }}">{{ apt.status.title() }}</span></td>
+              <td>{{ apt.employee.username if apt.employee else '—' }}</td>
+              <td><a href="{{ url_for('admin.appointments') }}?status=pending" class="btn-secondary btn-sm"><i class="bi bi-eye"></i> Manage</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- New Users + Quick Actions -->
+      <div class="nb-grid-2">
+        <div class="nb-card">
+          <div class="nb-card__header"><span class="nb-card__title">New User Registrations</span><a href="{{ url_for('admin.users') }}?status=pending" class="btn-secondary btn-sm">Review</a></div>
+          <div class="nb-card__body" style="padding:0">
+            {% for user in recent_users %}
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--nb-border)">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--nb-blue),#4d79ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700">{{ user.username[0].upper() }}</div>
+              <div style="flex:1">
+                <div style="font-weight:600;color:var(--nb-navy);font-size:14px">{{ user.username }}</div>
+                <div style="font-size:12px;color:var(--nb-text-3)">{{ user.email }}</div>
+              </div>
+              <span class="nb-badge nb-badge--{{ user.status }}">{{ user.status.title() }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="nb-card">
+          <div class="nb-card__header"><span class="nb-card__title">Quick Actions</span></div>
+          <div class="nb-card__body" style="display:flex;flex-direction:column;gap:12px">
+            <a href="{{ url_for('admin.users') }}?status=pending" class="btn-primary w-full" style="justify-content:center"><i class="bi bi-person-check"></i> Review Pending Users ({{ stats.pending_users }})</a>
+            <a href="{{ url_for('admin.employees') }}?status=pending" class="btn-secondary w-full" style="justify-content:center"><i class="bi bi-person-badge"></i> Approve Employees ({{ stats.pending_employees }})</a>
+            <a href="{{ url_for('admin.appointments') }}?status=pending" class="btn-secondary w-full" style="justify-content:center"><i class="bi bi-calendar-check"></i> Allocate Appointments ({{ stats.pending_appointments }})</a>
+            <a href="{{ url_for('admin.slots') }}" class="btn-secondary w-full" style="justify-content:center"><i class="bi bi-clock-history"></i> Manage Time Slots</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+async function loadCharts() {
+  const res = await fetch('/admin/api/analytics');
+  const data = await res.json();
+
+  // Daily chart
+  new Chart(document.getElementById('dailyChart'), {
+    type: 'bar',
+    data: {
+      labels: data.daily.map(d => d.date.slice(5)),
+      datasets: [{ label: 'Bookings', data: data.daily.map(d => d.count),
+        backgroundColor: 'rgba(26,79,216,0.15)', borderColor: '#1a4fd8',
+        borderWidth: 2, borderRadius: 6 }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  // Service doughnut
+  new Chart(document.getElementById('serviceChart'), {
+    type: 'doughnut',
+    data: {
+      labels: data.services.map(s => s.name.replace(/_/g,' ')),
+      datasets: [{ data: data.services.map(s => s.count),
+        backgroundColor: ['#1a4fd8','#16a34a','#d97706','#7c3aed','#0891b2','#e11d48'],
+        borderWidth: 2 }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right' } } }
+  });
+}
+loadCharts();
+</script>
+{% endblock %}

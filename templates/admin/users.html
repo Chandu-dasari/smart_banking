@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Manage Users — NexusBank Admin{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)"><i class="bi bi-shield-lock"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="{{ url_for('admin.users') }}" class="nb-sidebar__item active"><i class="bi bi-people"></i> Users</a>
+      <a href="{{ url_for('admin.employees') }}" class="nb-sidebar__item"><i class="bi bi-person-badge"></i> Employees</a>
+      <a href="{{ url_for('admin.appointments') }}" class="nb-sidebar__item"><i class="bi bi-calendar-week"></i> Appointments</a>
+      <a href="{{ url_for('admin.slots') }}" class="nb-sidebar__item"><i class="bi bi-clock-history"></i> Manage Slots</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)">A</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Admin</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">Customer Accounts</div></div>
+      <div class="nb-topbar__actions">
+        <form style="display:flex;gap:8px" method="GET">
+          <input type="text" name="q" value="{{ q }}" class="nb-input" style="width:200px" placeholder="Search name or email...">
+          <select name="status" class="nb-input nb-select" style="width:140px" onchange="this.form.submit()">
+            <option value="">All Status</option>
+            <option value="pending" {{ 'selected' if status_filter=='pending' }}>Pending</option>
+            <option value="approved" {{ 'selected' if status_filter=='approved' }}>Approved</option>
+            <option value="rejected" {{ 'selected' if status_filter=='rejected' }}>Rejected</option>
+          </select>
+          <button type="submit" class="btn-primary btn-sm"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+    </div>
+    <div class="nb-content">
+      <div class="nb-table-card">
+        <div class="nb-table-card__header">
+          <span class="nb-table-card__title">{{ users|length }} Users</span>
+        </div>
+        {% if users %}
+        <table class="nb-table">
+          <thead><tr><th>Customer</th><th>Contact</th><th>ID</th><th>Face ID</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  {% if user.face_image %}
+                  <img src="/static/uploads/faces/{{ user.face_image }}" style="width:34px;height:34px;border-radius:50%;object-fit:cover">
+                  {% else %}
+                  <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--nb-blue),#4d79ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px">{{ user.username[0].upper() }}</div>
+                  {% endif %}
+                  <div>
+                    <div style="font-weight:600;color:var(--nb-navy)">{{ user.username }}</div>
+                    <div style="font-size:12px;color:var(--nb-text-3)">{{ user.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-size:13px">{{ user.contact or '—' }}</td>
+              <td style="font-size:13px">{{ user.id_type }}<br><span style="color:var(--nb-text-3)">{{ user.id_number }}</span></td>
+              <td>
+                {% if user.face_encoding %}
+                <span style="color:var(--nb-success);font-size:13px"><i class="bi bi-check-circle-fill"></i> Active</span>
+                {% else %}
+                <span style="color:var(--nb-danger);font-size:13px"><i class="bi bi-x-circle"></i> None</span>
+                {% endif %}
+              </td>
+              <td><span class="nb-badge nb-badge--{{ user.status }}">{{ user.status.title() }}</span></td>
+              <td style="font-size:12px;color:var(--nb-text-3)">{{ user.created_at.strftime('%d %b %Y') }}</td>
+              <td>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  {% if user.status == 'pending' %}
+                  <button onclick="approveUser({{ user.id }}, this)" class="btn-success btn-sm"><i class="bi bi-check-circle"></i> Approve</button>
+                  <button onclick="rejectUser({{ user.id }})" class="btn-danger btn-sm"><i class="bi bi-x-circle"></i> Reject</button>
+                  {% elif user.status == 'approved' %}
+                  <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" class="btn-secondary btn-sm"><i class="bi bi-eye"></i></a>
+                  <button onclick="deleteUser({{ user.id }}, '{{ user.username }}')" class="btn-danger btn-sm"><i class="bi bi-trash"></i></button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="nb-empty"><i class="bi bi-people"></i><h3>No users found</h3></div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Reject Modal -->
+<div class="nb-modal-overlay" id="rejectModal">
+  <div class="nb-modal">
+    <div class="nb-modal__header">
+      <span class="nb-modal__title">Reject User</span>
+      <button class="nb-modal__close" onclick="document.getElementById('rejectModal').classList.remove('open')"><i class="bi bi-x"></i></button>
+    </div>
+    <div class="nb-form-group">
+      <label class="nb-label">Reason for Rejection (optional)</label>
+      <textarea id="rejectReason" class="nb-input" rows="3" placeholder="Please provide your ID documents..."></textarea>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end">
+      <button onclick="document.getElementById('rejectModal').classList.remove('open')" class="btn-secondary">Cancel</button>
+      <button onclick="confirmReject()" class="btn-danger"><i class="bi bi-x-circle"></i> Reject</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let rejectUserId = null;
+
+async function approveUser(userId, btn) {
+  setLoading(btn, true);
+  const data = await nbFetch(`/admin/users/${userId}/approve`, { method: 'POST' });
+  setLoading(btn, false);
+  if (data.success) { showToast(data.message, 'success'); setTimeout(() => location.reload(), 800); }
+  else showToast('Failed', 'error');
+}
+
+function rejectUser(userId) {
+  rejectUserId = userId;
+  document.getElementById('rejectModal').classList.add('open');
+}
+
+async function confirmReject() {
+  const reason = document.getElementById('rejectReason').value;
+  const data = await nbFetch(`/admin/users/${rejectUserId}/reject`, { method: 'POST', body: { reason } });
+  document.getElementById('rejectModal').classList.remove('open');
+  if (data.success) { showToast('User rejected', 'success'); setTimeout(() => location.reload(), 800); }
+}
+
+async function deleteUser(userId, name) {
+  if (!await nbConfirm(`Delete user "${name}"? This cannot be undone.`)) return;
+  const data = await nbFetch(`/admin/users/${userId}/delete`, { method: 'POST' });
+  if (data.success) { showToast('User deleted', 'success'); setTimeout(() => location.reload(), 800); }
+}
+</script>
+{% endblock %}

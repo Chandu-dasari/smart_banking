@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% block title %}NexusBank — Smart Banking for the Modern Age{% endblock %}
+
+{% block body %}
+<nav class="nb-nav" id="mainNav">
+  <div class="nb-nav__brand">
+    <span class="nb-logo-icon"><i class="bi bi-bank2"></i></span>
+    <span class="nb-logo-text">NexusBank</span>
+  </div>
+  <div class="nb-nav__links">
+    <a href="#services">Services</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <div class="nb-nav__actions">
+    <a href="{{ url_for('auth.login') }}" class="btn-nav-outline">Login</a>
+    <a href="{{ url_for('auth.register') }}" class="btn-nav-fill">Open Account</a>
+    <div class="nb-nav__dropdown">
+      <button class="btn-nav-staff">Staff <i class="bi bi-chevron-down"></i></button>
+      <div class="nb-nav__dropdown-menu">
+        <a href="{{ url_for('auth.employee_login') }}"><i class="bi bi-person-badge"></i> Employee Login</a>
+        <a href="{{ url_for('auth.employee_register') }}"><i class="bi bi-person-plus"></i> Employee Register</a>
+        <a href="{{ url_for('auth.admin_login') }}"><i class="bi bi-shield-lock"></i> Admin Portal</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="nb-hero">
+  <div class="nb-hero__bg">
+    <div class="nb-hero__orb nb-hero__orb--1"></div>
+    <div class="nb-hero__orb nb-hero__orb--2"></div>
+    <div class="nb-hero__orb nb-hero__orb--3"></div>
+    <div class="nb-hero__grid"></div>
+  </div>
+  <div class="nb-hero__content">
+    <div class="nb-hero__badge">
+      <span class="nb-badge-dot"></span>
+      AI-Powered Smart Banking
+    </div>
+    <h1 class="nb-hero__title">
+      Banking Reimagined<br>
+      <span class="nb-hero__title--accent">for the Digital Age</span>
+    </h1>
+    <p class="nb-hero__subtitle">Experience seamless banking with face recognition security, instant appointments, and dedicated relationship managers — all in one place.</p>
+    <div class="nb-hero__cta">
+      <a href="{{ url_for('auth.register') }}" class="btn-hero-primary">
+        <i class="bi bi-person-plus-fill"></i> Open Account Free
+      </a>
+      <a href="#services" class="btn-hero-ghost">
+        <i class="bi bi-play-circle"></i> Explore Services
+      </a>
+    </div>
+    <div class="nb-hero__stats">
+      <div class="nb-stat">
+        <span class="nb-stat__num">50K+</span>
+        <span class="nb-stat__label">Happy Customers</span>
+      </div>
+      <div class="nb-stat__div"></div>
+      <div class="nb-stat">
+        <span class="nb-stat__num">₹2B+</span>
+        <span class="nb-stat__label">Assets Managed</span>
+      </div>
+      <div class="nb-stat__div"></div>
+      <div class="nb-stat">
+        <span class="nb-stat__num">99.9%</span>
+        <span class="nb-stat__label">Uptime SLA</span>
+      </div>
+    </div>
+  </div>
+  <div class="nb-hero__visual">
+    <div class="nb-card-float nb-card-float--main">
+      <div class="nb-card-float__header">
+        <div class="nb-card-float__logo"><i class="bi bi-bank2"></i></div>
+        <div>
+          <div class="nb-card-float__card-name">NexusBank Platinum</div>
+          <div class="nb-card-float__card-type">Smart Account</div>
+        </div>
+        <div class="nb-chip"><i class="bi bi-cpu"></i></div>
+      </div>
+      <div class="nb-card-float__number">•••• •••• •••• 4821</div>
+      <div class="nb-card-float__footer">
+        <div>
+          <div class="nb-card-float__label">Balance</div>
+          <div class="nb-card-float__value">₹ 1,24,800.00</div>
+        </div>
+        <div class="nb-card-float__contactless"><i class="bi bi-wifi"></i></div>
+      </div>
+    </div>
+    <div class="nb-notif-float nb-notif-float--1">
+      <i class="bi bi-shield-check-fill" style="color:#16a34a"></i>
+      <span>Face ID Verified ✓</span>
+    </div>
+    <div class="nb-notif-float nb-notif-float--2">
+      <i class="bi bi-calendar-check-fill" style="color:#0d6efd"></i>
+      <span>Appointment Booked!</span>
+    </div>
+    <div class="nb-notif-float nb-notif-float--3">
+      <i class="bi bi-arrow-up-right" style="color:#16a34a"></i>
+      <span>₹5,000 Transferred</span>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="nb-section" id="services">
+  <div class="nb-container">
+    <div class="nb-section__header">
+      <div class="nb-section__badge">Our Services</div>
+      <h2 class="nb-section__title">Everything you need,<br>under one roof</h2>
+      <p class="nb-section__subtitle">From account opening to loan enquiry — book appointments seamlessly with our AI-powered scheduling system.</p>
+    </div>
+    <div class="nb-services-grid">
+      <div class="nb-service-card nb-service-card--blue">
+        <div class="nb-service-card__icon"><i class="bi bi-bank"></i></div>
+        <h3>Account Opening</h3>
+        <p>Savings, current, and fixed deposit accounts with zero paperwork hassle.</p>
+        <div class="nb-service-card__arrow"><i class="bi bi-arrow-right"></i></div>
+      </div>
+      <div class="nb-service-card nb-service-card--green">
+        <div class="nb-service-card__icon"><i class="bi bi-cash-coin"></i></div>
+        <h3>Loan Services</h3>
+        <p>Personal, home, vehicle & business loans with competitive interest rates.</p>
+        <div class="nb-service-card__arrow"><i class="bi bi-arrow-right"></i></div>
+      </div>
+      <div class="nb-service-card nb-service-card--amber">
+        <div class="nb-service-card__icon"><i class="bi bi-file-earmark-text"></i></div>
+        <h3>Document Hub</h3>
+        <p>Submit and track your KYC documents digitally from anywhere.</p>
+        <div class="nb-service-card__arrow"><i class="bi bi-arrow-right"></i></div>
+      </div>
+      <div class="nb-service-card nb-service-card--purple">
+        <div class="nb-service-card__icon"><i class="bi bi-credit-card"></i></div>
+        <h3>Cards & Payments</h3>
+        <p>Credit cards, debit cards, and contactless payment solutions.</p>
+        <div class="nb-service-card__arrow"><i class="bi bi-arrow-right"></i></div>
+      </div>
+      <div class="nb-service-card nb-service-card--cyan">
+        <div class="nb-service-card__icon"><i class="bi bi-shield-check"></i></div>
+        <h3>Insurance Plans</h3>
+        <p>Life, health, and property insurance for complete protection.</p>
+        <div class="nb-service-card__arrow"><i class="bi bi-arrow-right"></i></div>
+      </div>
+      <div class="nb-service-card nb-service-card--rose">
+        <div class="nb-service-card__icon"><i class="bi bi-headset"></i></div>
+        <h3>24/7 Support</h3>
+        <p>Dedicated relationship managers assigned to every customer.</p>
+        <div class="nb-service-card__arrow"><i class="bi bi-arrow-right"></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="nb-section nb-section--alt" id="about">
+  <div class="nb-container">
+    <div class="nb-section__header">
+      <div class="nb-section__badge">How It Works</div>
+      <h2 class="nb-section__title">Smart banking in<br>4 simple steps</h2>
+    </div>
+    <div class="nb-steps">
+      <div class="nb-step">
+        <div class="nb-step__num">01</div>
+        <div class="nb-step__icon"><i class="bi bi-person-plus"></i></div>
+        <h3>Register</h3>
+        <p>Sign up with your details and register your face for biometric security.</p>
+      </div>
+      <div class="nb-step__arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="nb-step">
+        <div class="nb-step__num">02</div>
+        <div class="nb-step__icon"><i class="bi bi-shield-check"></i></div>
+        <h3>Get Verified</h3>
+        <p>Admin reviews and approves your account. Receive instant email confirmation.</p>
+      </div>
+      <div class="nb-step__arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="nb-step">
+        <div class="nb-step__num">03</div>
+        <div class="nb-step__icon"><i class="bi bi-calendar3"></i></div>
+        <h3>Book Slot</h3>
+        <p>Choose your service, pick a date and time slot — theatre-style seat booking.</p>
+      </div>
+      <div class="nb-step__arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="nb-step">
+        <div class="nb-step__num">04</div>
+        <div class="nb-step__icon"><i class="bi bi-chat-dots"></i></div>
+        <h3>Get Served</h3>
+        <p>Meet your assigned banker and chat directly through our secure messaging.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY FEATURE -->
+<section class="nb-section">
+  <div class="nb-container">
+    <div class="nb-security">
+      <div class="nb-security__content">
+        <div class="nb-section__badge">AI Security</div>
+        <h2 class="nb-section__title">Your face is<br>your password</h2>
+        <p>NexusBank uses state-of-the-art InsightFace AI technology for biometric authentication. Your face data is encrypted and stored securely — login takes under 3 seconds.</p>
+        <ul class="nb-feature-list">
+          <li><i class="bi bi-check-circle-fill"></i> OTP + Face dual verification</li>
+          <li><i class="bi bi-check-circle-fill"></i> 512-dimensional face embeddings</li>
+          <li><i class="bi bi-check-circle-fill"></i> Liveness detection support</li>
+          <li><i class="bi bi-check-circle-fill"></i> Zero password sharing risk</li>
+        </ul>
+        <a href="{{ url_for('auth.register') }}" class="btn-hero-primary" style="display:inline-flex;margin-top:20px;">
+          <i class="bi bi-camera-video"></i> Enable Face ID
+        </a>
+      </div>
+      <div class="nb-security__visual">
+        <div class="nb-face-demo">
+          <div class="nb-face-demo__oval">
+            <div class="nb-face-demo__scan"></div>
+            <div class="nb-face-demo__icon"><i class="bi bi-person-bounding-box"></i></div>
+          </div>
+          <div class="nb-face-demo__status">
+            <i class="bi bi-shield-fill-check"></i> Identity Verified
+          </div>
+          <div class="nb-face-demo__dots">
+            <span class="dot dot--active"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="nb-footer" id="contact">
+  <div class="nb-container">
+    <div class="nb-footer__top">
+      <div class="nb-footer__brand">
+        <div class="nb-logo">
+          <span class="nb-logo-icon"><i class="bi bi-bank2"></i></span>
+          <span class="nb-logo-text">NexusBank</span>
+        </div>
+        <p>Smart Banking for the Modern Age. Secure, Fast, and Intelligent.</p>
+        <div class="nb-social">
+          <a href="#"><i class="bi bi-twitter-x"></i></a>
+          <a href="#"><i class="bi bi-linkedin"></i></a>
+          <a href="#"><i class="bi bi-instagram"></i></a>
+          <a href="#"><i class="bi bi-facebook"></i></a>
+        </div>
+      </div>
+      <div class="nb-footer__links">
+        <div>
+          <h4>Services</h4>
+          <a href="#">Account Opening</a>
+          <a href="#">Loan Services</a>
+          <a href="#">Insurance</a>
+          <a href="#">Credit Cards</a>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <a href="#">About Us</a>
+          <a href="#">Careers</a>
+          <a href="#">Press</a>
+          <a href="#">Blog</a>
+        </div>
+        <div>
+          <h4>Support</h4>
+          <a href="#">Help Center</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Contact Us</a>
+        </div>
+      </div>
+    </div>
+    <div class="nb-footer__bottom">
+      <p>© 2026 NexusBank. All rights reserved. | RBI Licensed | FDIC Insured</p>
+      <div class="nb-footer__badges">
+        <span><i class="bi bi-shield-lock"></i> SSL Secured</span>
+        <span><i class="bi bi-award"></i> ISO 27001</span>
+        <span><i class="bi bi-bank"></i> RBI Compliant</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Navbar scroll effect
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('mainNav');
+  nav.classList.toggle('scrolled', window.scrollY > 50);
+});
+
+// Dropdown
+document.querySelector('.btn-nav-staff').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.querySelector('.nb-nav__dropdown').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  document.querySelector('.nb-nav__dropdown').classList.remove('open');
+});
+
+// Animate elements on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.nb-service-card, .nb-step, .nb-stat').forEach(el => observer.observe(el));
+</script>
+{% endblock %}

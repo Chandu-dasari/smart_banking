@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Profile — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon"><i class="bi bi-bank2"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('user.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+      <a href="{{ url_for('user.book_appointment') }}" class="nb-sidebar__item"><i class="bi bi-calendar-plus"></i> Book Appointment</a>
+      <a href="{{ url_for('user.my_appointments') }}" class="nb-sidebar__item"><i class="bi bi-calendar-check"></i> My Appointments</a>
+      <a href="{{ url_for('user.profile') }}" class="nb-sidebar__item active"><i class="bi bi-person-circle"></i> Profile</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar">{{ current_user.username[0].upper() }}</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Customer</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">My Profile</div></div>
+    </div>
+    <div class="nb-content">
+      <div style="max-width:640px">
+        <div class="nb-card">
+          <div class="nb-card__body" style="text-align:center;padding:40px">
+            {% if current_user.face_image %}
+            <img src="/static/uploads/faces/{{ current_user.face_image }}" style="width:100px;height:100px;border-radius:50%;border:4px solid var(--nb-border);object-fit:cover;margin-bottom:16px" alt="Face">
+            {% else %}
+            <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--nb-navy),var(--nb-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:42px;font-weight:700;margin:0 auto 16px">{{ current_user.username[0].upper() }}</div>
+            {% endif %}
+            <div style="font-size:24px;font-weight:700;color:var(--nb-navy)">{{ current_user.username }}</div>
+            <div style="color:var(--nb-text-3);margin:6px 0 12px">{{ current_user.email }}</div>
+            <span class="nb-badge nb-badge--{{ current_user.status }}">{{ current_user.status.title() }}</span>
+          </div>
+          <div style="border-top:1px solid var(--nb-border);padding:24px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+              {% set fields = [('Contact', current_user.contact), ('Date of Birth', current_user.dob), ('Occupation', current_user.occupation), ('Address', current_user.address), ('ID Type', current_user.id_type), ('ID Number', current_user.id_number)] %}
+              {% for label, val in fields %}
+              <div>
+                <div style="font-size:12px;color:var(--nb-text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">{{ label }}</div>
+                <div style="font-size:15px;color:var(--nb-navy);margin-top:4px;font-weight:500">{{ val or '—' }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--nb-border);padding:20px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:13px;color:var(--nb-text-3)">Member since {{ current_user.created_at.strftime('%B %Y') }}</div>
+            <div style="font-size:13px;color:{% if current_user.face_encoding %}var(--nb-success){% else %}var(--nb-danger){% endif %}">
+              <i class="bi bi-camera-video"></i> Face ID {% if current_user.face_encoding %}Active{% else %}Not Set{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

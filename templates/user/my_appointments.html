@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}My Appointments — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon"><i class="bi bi-bank2"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('user.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+      <a href="{{ url_for('user.book_appointment') }}" class="nb-sidebar__item"><i class="bi bi-calendar-plus"></i> Book Appointment</a>
+      <a href="{{ url_for('user.my_appointments') }}" class="nb-sidebar__item active"><i class="bi bi-calendar-check"></i> My Appointments</a>
+      <a href="{{ url_for('user.profile') }}" class="nb-sidebar__item"><i class="bi bi-person-circle"></i> Profile</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar">{{ current_user.username[0].upper() }}</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Customer</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">My Appointments</div><div class="nb-topbar__subtitle">Manage your bookings</div></div>
+      <div class="nb-topbar__actions"><a href="{{ url_for('user.book_appointment') }}" class="btn-primary btn-sm"><i class="bi bi-plus-circle"></i> New Booking</a></div>
+    </div>
+    <div class="nb-content">
+      {% if appointments %}
+        {% for apt in appointments %}
+        <div class="nb-card" style="margin-bottom:20px" id="apt-{{ apt.id }}">
+          <div class="nb-card__body" style="padding:24px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px">
+              <div style="display:flex;gap:16px;align-items:flex-start">
+                <div style="width:52px;height:52px;border-radius:14px;background:var(--nb-blue-pale);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--nb-blue);flex-shrink:0">
+                  <i class="bi bi-calendar-event"></i>
+                </div>
+                <div>
+                  <div style="font-size:18px;font-weight:700;color:var(--nb-navy)">{{ apt.service.replace('_',' ').title() }}</div>
+                  <div style="font-size:13px;color:var(--nb-text-3);margin-top:4px">
+                    📅 {{ apt.slot.date }} &nbsp;|&nbsp; 🕐 {{ apt.slot.time }}
+                  </div>
+                  {% if apt.employee %}
+                  <div style="font-size:13px;color:var(--nb-text-2);margin-top:6px">
+                    <i class="bi bi-person-badge"></i> Staff: <strong>{{ apt.employee.username }}</strong>
+                    {% if apt.counter %} &nbsp;|&nbsp; <i class="bi bi-shop"></i> Counter: <strong>{{ apt.counter }}</strong>{% endif %}
+                  </div>
+                  {% endif %}
+                  {% if apt.admin_notes %}
+                  <div style="margin-top:8px;padding:8px 12px;background:#fef2f2;border-radius:8px;font-size:12px;color:#991b1b">
+                    <i class="bi bi-info-circle"></i> {{ apt.admin_notes }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+                <span class="nb-badge nb-badge--{{ apt.status }}">
+                  <i class="bi bi-circle-fill" style="font-size:8px"></i>
+                  {{ apt.status.title() }}
+                </span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  {% if apt.status == 'approved' and apt.employee_id %}
+                  <a href="{{ url_for('user.chat', apt_id=apt.id) }}" class="btn-primary btn-sm"><i class="bi bi-chat-dots"></i> Chat</a>
+                  {% endif %}
+                  {% if apt.status == 'pending' %}
+                  <button onclick="openReschedule({{ apt.id }})" class="btn-secondary btn-sm"><i class="bi bi-arrow-repeat"></i> Reschedule</button>
+                  <button onclick="cancelApt({{ apt.id }})" class="btn-danger btn-sm"><i class="bi bi-x-circle"></i> Cancel</button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="nb-card">
+          <div class="nb-empty">
+            <i class="bi bi-calendar-x"></i>
+            <h3>No Appointments Yet</h3>
+            <p>You haven't booked any appointments</p>
+            <a href="{{ url_for('user.book_appointment') }}" class="btn-primary" style="margin-top:16px"><i class="bi bi-plus-circle"></i> Book Now</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+
+<!-- Reschedule Modal -->
+<div class="nb-modal-overlay" id="rescheduleModal">
+  <div class="nb-modal" style="max-width:600px;width:100%">
+    <div class="nb-modal__header">
+      <span class="nb-modal__title">Reschedule Appointment</span>
+      <button class="nb-modal__close" onclick="closeModal('rescheduleModal')"><i class="bi bi-x"></i></button>
+    </div>
+    <p style="font-size:14px;color:var(--nb-text-2);margin-bottom:20px">Select a new date and time slot:</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label class="nb-label" style="margin-bottom:8px;display:block">New Date</label>
+        <input type="date" id="reschedDate" class="nb-input" min="{{ today_str if today_str else '' }}" onchange="loadReschedSlots()">
+      </div>
+      <div>
+        <label class="nb-label" style="margin-bottom:8px;display:block">New Time Slot</label>
+        <select id="reschedSlot" class="nb-input nb-select">
+          <option value="">Select date first</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end">
+      <button onclick="closeModal('rescheduleModal')" class="btn-secondary">Cancel</button>
+      <button onclick="confirmReschedule()" class="btn-primary"><i class="bi bi-check-circle"></i> Reschedule</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let reschedAptId = null;
+
+function openReschedule(aptId) {
+  reschedAptId = aptId;
+  document.getElementById('rescheduleModal').classList.add('open');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  document.getElementById('reschedDate').min = tomorrow.toISOString().split('T')[0];
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function loadReschedSlots() {
+  const date = document.getElementById('reschedDate').value;
+  if (!date) return;
+  const res = await fetch(`/user/api/slots/${date}`);
+  const slots = await res.json();
+  const sel = document.getElementById('reschedSlot');
+  sel.innerHTML = '<option value="">Select a slot</option>';
+  slots.filter(s => s.available).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${s.time} (${s.seats_left} seat${s.seats_left>1?'s':''} left)`;
+    sel.appendChild(opt);
+  });
+  if (!slots.filter(s=>s.available).length) {
+    sel.innerHTML = '<option value="">No slots available</option>';
+  }
+}
+
+async function confirmReschedule() {
+  const slotId = document.getElementById('reschedSlot').value;
+  if (!slotId) { showToast('Please select a new slot', 'error'); return; }
+  const data = await nbFetch('/user/api/reschedule', {
+    method: 'POST', body: { appointment_id: reschedAptId, new_slot_id: parseInt(slotId) }
+  });
+  if (data.success) { showToast('✅ ' + data.message, 'success'); setTimeout(() => location.reload(), 1200); }
+  else showToast(data.message, 'error');
+  closeModal('rescheduleModal');
+}
+
+async function cancelApt(aptId) {
+  if (!await nbConfirm('Are you sure you want to cancel this appointment?')) return;
+  const data = await nbFetch('/user/api/cancel', { method: 'POST', body: { appointment_id: aptId } });
+  if (data.success) { showToast('Appointment cancelled', 'success'); setTimeout(() => location.reload(), 1000); }
+  else showToast(data.message, 'error');
+}
+</script>
+{% endblock %}

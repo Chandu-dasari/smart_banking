@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Create Account — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-auth">
+  <div class="nb-auth-card nb-auth-card--wide">
+    <div class="nb-auth-header">
+      <div class="nb-auth-logo"><i class="bi bi-bank2"></i></div>
+      <h1 class="nb-auth-title">Open Your Account</h1>
+      <p class="nb-auth-subtitle">Join NexusBank — smart banking for everyone</p>
+    </div>
+
+    <form action="{{ url_for('auth.register') }}" method="POST" class="nb-form">
+      <div class="nb-form-row">
+        <div class="nb-form-group">
+          <label class="nb-label">Full Name <span>*</span></label>
+          <input name="username" type="text" class="nb-input" placeholder="Saravanan L" required>
+        </div>
+        <div class="nb-form-group">
+          <label class="nb-label">Email Address <span>*</span></label>
+          <input name="email" type="email" class="nb-input" placeholder="you@example.com" required>
+        </div>
+      </div>
+      <div class="nb-form-row">
+        <div class="nb-form-group">
+          <label class="nb-label">Password <span>*</span></label>
+          <div style="position:relative">
+            <input name="password" type="password" id="pwdInput" class="nb-input" placeholder="Min. 8 characters" required>
+            <button type="button" onclick="togglePwd()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--nb-text-3);font-size:16px"><i class="bi bi-eye" id="pwdIcon"></i></button>
+          </div>
+        </div>
+        <div class="nb-form-group">
+          <label class="nb-label">Contact Number <span>*</span></label>
+          <input name="contact" type="tel" class="nb-input" placeholder="+91 9876543210" required>
+        </div>
+      </div>
+      <div class="nb-form-row">
+        <div class="nb-form-group">
+          <label class="nb-label">Date of Birth <span>*</span></label>
+          <input name="dob" type="date" class="nb-input" required>
+        </div>
+        <div class="nb-form-group">
+          <label class="nb-label">Occupation</label>
+          <input name="occupation" type="text" class="nb-input" placeholder="Software Engineer">
+        </div>
+      </div>
+      <div class="nb-form-row">
+        <div class="nb-form-group">
+          <label class="nb-label">ID Type <span>*</span></label>
+          <select name="id_type" class="nb-input nb-select" required>
+            <option value="">Select ID Type</option>
+            <option value="Aadhaar">Aadhaar Card</option>
+            <option value="PAN">PAN Card</option>
+            <option value="Passport">Passport</option>
+            <option value="Voter ID">Voter ID</option>
+            <option value="Driving License">Driving License</option>
+          </select>
+        </div>
+        <div class="nb-form-group">
+          <label class="nb-label">ID Number <span>*</span></label>
+          <input name="id_number" type="text" class="nb-input" placeholder="XXXX XXXX XXXX" required>
+        </div>
+      </div>
+      <div class="nb-form-group">
+        <label class="nb-label">Address <span>*</span></label>
+        <textarea name="address" class="nb-input" rows="3" placeholder="No. 12, Anna Nagar, Chennai - 600040" required style="resize:vertical"></textarea>
+      </div>
+      <button type="submit" class="btn-primary w-full" style="justify-content:center;padding:14px">
+        <i class="bi bi-arrow-right-circle"></i> Continue to Face Registration
+      </button>
+    </form>
+
+    <div class="nb-auth-footer">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign In</a>
+    </div>
+  </div>
+</div>
+<script>
+function togglePwd() {
+  const i = document.getElementById('pwdInput');
+  const icon = document.getElementById('pwdIcon');
+  if (i.type === 'password') { i.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+  else { i.type = 'password'; icon.className = 'bi bi-eye'; }
+}
+</script>
+{% endblock %}

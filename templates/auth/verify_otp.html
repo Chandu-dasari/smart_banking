@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Verify OTP — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-auth">
+  <div class="nb-auth-card">
+    <div class="nb-auth-header">
+      <div class="nb-auth-logo" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><i class="bi bi-envelope-check"></i></div>
+      <h1 class="nb-auth-title">Check Your Email</h1>
+      <p class="nb-auth-subtitle">We've sent a 6-digit OTP to your registered email</p>
+    </div>
+
+    <form action="{{ url_for('auth.verify_otp') }}" method="POST" class="nb-form">
+      <div class="nb-form-group">
+        <label class="nb-label" style="text-align:center;display:block">Enter 6-Digit OTP</label>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+          {% for i in range(6) %}
+          <input type="text" maxlength="1" class="otp-box nb-input"
+                 style="width:52px;height:60px;text-align:center;font-size:24px;font-weight:700;padding:0"
+                 oninput="otpInput(this,{{ i }})" onkeydown="otpBack(this,event,{{ i }})">
+          {% endfor %}
+        </div>
+        <input type="hidden" name="otp" id="otpHidden">
+      </div>
+
+      <div style="text-align:center;font-size:13px;color:var(--nb-text-3)">
+        OTP expires in <span id="timer" style="font-weight:700;color:var(--nb-navy)">5:00</span>
+      </div>
+
+      <button type="submit" class="btn-primary w-full" id="verifyBtn" style="justify-content:center;padding:14px" disabled>
+        <i class="bi bi-shield-check"></i> Verify OTP
+      </button>
+    </form>
+
+    <div class="nb-auth-footer">
+      Didn't receive? <a href="{{ url_for('auth.resend_otp') }}">Resend OTP</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const boxes = document.querySelectorAll('.otp-box');
+
+function otpInput(el, idx) {
+  el.value = el.value.replace(/\D/g,'');
+  if (el.value && idx < 5) boxes[idx+1].focus();
+  updateHidden();
+}
+
+function otpBack(el, e, idx) {
+  if (e.key === 'Backspace' && !el.value && idx > 0) boxes[idx-1].focus();
+}
+
+function updateHidden() {
+  const val = Array.from(boxes).map(b => b.value).join('');
+  document.getElementById('otpHidden').value = val;
+  document.getElementById('verifyBtn').disabled = val.length < 6;
+}
+
+// Timer
+let seconds = 300;
+const timerEl = document.getElementById('timer');
+const tick = setInterval(() => {
+  seconds--;
+  const m = Math.floor(seconds/60);
+  const s = seconds % 60;
+  timerEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  if (seconds <= 0) { clearInterval(tick); timerEl.textContent = 'Expired'; timerEl.style.color = 'var(--nb-danger)'; }
+}, 1000);
+
+// Auto-focus first
+boxes[0].focus();
+</script>
+{% endblock %}

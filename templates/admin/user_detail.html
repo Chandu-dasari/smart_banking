@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}User Detail — NexusBank Admin{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)"><i class="bi bi-shield-lock"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="{{ url_for('admin.users') }}" class="nb-sidebar__item active"><i class="bi bi-people"></i> Users</a>
+      <a href="{{ url_for('admin.employees') }}" class="nb-sidebar__item"><i class="bi bi-person-badge"></i> Employees</a>
+      <a href="{{ url_for('admin.appointments') }}" class="nb-sidebar__item"><i class="bi bi-calendar-week"></i> Appointments</a>
+      <a href="{{ url_for('admin.slots') }}" class="nb-sidebar__item"><i class="bi bi-clock-history"></i> Manage Slots</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)">A</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Admin</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">User Profile</div></div>
+      <div class="nb-topbar__actions"><a href="{{ url_for('admin.users') }}" class="btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a></div>
+    </div>
+    <div class="nb-content">
+      <div class="nb-grid-2">
+        <div class="nb-card">
+          <div class="nb-card__body" style="text-align:center;padding:40px">
+            {% if user.face_image %}
+            <img src="/static/uploads/faces/{{ user.face_image }}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid var(--nb-border);margin-bottom:16px">
+            {% else %}
+            <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--nb-navy),var(--nb-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:42px;font-weight:700;margin:0 auto 16px">{{ user.username[0].upper() }}</div>
+            {% endif %}
+            <div style="font-size:22px;font-weight:700;color:var(--nb-navy)">{{ user.username }}</div>
+            <div style="color:var(--nb-text-3);margin:6px 0 12px">{{ user.email }}</div>
+            <span class="nb-badge nb-badge--{{ user.status }}">{{ user.status.title() }}</span>
+          </div>
+          <div style="border-top:1px solid var(--nb-border);padding:24px;display:flex;flex-direction:column;gap:14px">
+            {% for label, val in [('Contact', user.contact), ('DOB', user.dob), ('Occupation', user.occupation), ('ID Type', user.id_type), ('ID Number', user.id_number), ('Address', user.address)] %}
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:13px;color:var(--nb-text-3)">{{ label }}</span>
+              <span style="font-size:13px;font-weight:600;color:var(--nb-navy);max-width:60%;text-align:right">{{ val or '—' }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <div class="nb-card">
+            <div class="nb-card__header"><span class="nb-card__title">Appointments ({{ appointments|length }})</span></div>
+            {% if appointments %}
+            <table class="nb-table">
+              <thead><tr><th>Service</th><th>Date</th><th>Status</th></tr></thead>
+              <tbody>
+                {% for apt in appointments %}
+                <tr>
+                  <td>{{ apt.service.replace('_',' ').title() }}</td>
+                  <td>{{ apt.slot.date }}</td>
+                  <td><span class="nb-badge nb-badge--{{ apt.status }}">{{ apt.status.title() }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="nb-empty" style="padding:30px"><i class="bi bi-calendar-x"></i><p>No appointments</p></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

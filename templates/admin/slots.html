@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}Manage Slots — NexusBank Admin{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)"><i class="bi bi-shield-lock"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="{{ url_for('admin.users') }}" class="nb-sidebar__item"><i class="bi bi-people"></i> Users</a>
+      <a href="{{ url_for('admin.employees') }}" class="nb-sidebar__item"><i class="bi bi-person-badge"></i> Employees</a>
+      <a href="{{ url_for('admin.appointments') }}" class="nb-sidebar__item"><i class="bi bi-calendar-week"></i> Appointments</a>
+      <a href="{{ url_for('admin.slots') }}" class="nb-sidebar__item active"><i class="bi bi-clock-history"></i> Manage Slots</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)">A</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Admin</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">Time Slot Management</div></div>
+      <div class="nb-topbar__actions">
+        <button onclick="document.getElementById('addSlotModal').classList.add('open')" class="btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Add Slots</button>
+      </div>
+    </div>
+    <div class="nb-content">
+      <!-- Date filter -->
+      <div class="nb-card" style="margin-bottom:24px">
+        <div class="nb-card__body" style="padding:16px">
+          <form method="GET" style="display:flex;align-items:center;gap:12px">
+            <label class="nb-label" style="white-space:nowrap">View date:</label>
+            <input type="date" name="date" value="{{ date_filter }}" class="nb-input" style="width:180px">
+            <button type="submit" class="btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="nb-table-card">
+        <div class="nb-table-card__header">
+          <span class="nb-table-card__title">Slots for {{ date_filter }}</span>
+          <span style="font-size:13px;color:var(--nb-text-3)">{{ slots|length }} slots total</span>
+        </div>
+        {% if slots %}
+        <table class="nb-table">
+          <thead><tr><th>Time</th><th>Capacity</th><th>Booked</th><th>Available</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for slot in slots %}
+            <tr id="slot-row-{{ slot.id }}">
+              <td><strong style="font-size:16px">{{ slot.time }}</strong></td>
+              <td>{{ slot.max_capacity }}</td>
+              <td>
+                <div style="display:flex;gap:4px">
+                  {% for i in range(slot.max_capacity) %}
+                  <div style="width:14px;height:14px;border-radius:50%;background:{% if i < slot.booked_count %}var(--nb-danger){% else %}var(--nb-success){% endif %}"></div>
+                  {% endfor %}
+                </div>
+                {{ slot.booked_count }}/{{ slot.max_capacity }}
+              </td>
+              <td><strong style="color:{% if slot.seats_left > 0 %}var(--nb-success){% else %}var(--nb-danger){% endif %}">{{ slot.seats_left }}</strong></td>
+              <td>
+                <span class="nb-badge nb-badge--{{ 'approved' if slot.is_active else 'rejected' }}">
+                  {{ 'Active' if slot.is_active else 'Disabled' }}
+                </span>
+              </td>
+              <td>
+                <div style="display:flex;gap:6px">
+                  <button onclick="toggleSlot({{ slot.id }}, this)" class="btn-secondary btn-sm">
+                    <i class="bi bi-{{ 'pause-circle' if slot.is_active else 'play-circle' }}"></i>
+                    {{ 'Disable' if slot.is_active else 'Enable' }}
+                  </button>
+                  {% if slot.booked_count == 0 %}
+                  <button onclick="deleteSlot({{ slot.id }}, this)" class="btn-danger btn-sm"><i class="bi bi-trash"></i></button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="nb-empty">
+          <i class="bi bi-clock"></i>
+          <h3>No slots for this date</h3>
+          <p>Add slots using the button above</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Slot Modal -->
+<div class="nb-modal-overlay" id="addSlotModal">
+  <div class="nb-modal" style="max-width:560px">
+    <div class="nb-modal__header">
+      <span class="nb-modal__title">Add Time Slots</span>
+      <button class="nb-modal__close" onclick="document.getElementById('addSlotModal').classList.remove('open')"><i class="bi bi-x"></i></button>
+    </div>
+    <div class="nb-form" style="gap:16px">
+      <div class="nb-form-group">
+        <label class="nb-label">Date</label>
+        <input type="date" id="newSlotDate" class="nb-input">
+      </div>
+      <div class="nb-form-group">
+        <label class="nb-label">Capacity per Slot</label>
+        <select id="slotCapacity" class="nb-input nb-select">
+          <option value="2">2 (Default)</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="nb-form-group">
+        <label class="nb-label">Select Times</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          {% for t in default_times %}
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--nb-border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s" class="slot-time-label">
+            <input type="checkbox" value="{{ t }}" class="slot-time-check" style="accent-color:var(--nb-blue)">
+            {{ t }}
+          </label>
+          {% endfor %}
+        </div>
+        <button onclick="toggleAllTimes()" class="btn-secondary btn-sm" style="margin-top:8px"><i class="bi bi-check-all"></i> Toggle All</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end">
+      <button onclick="document.getElementById('addSlotModal').classList.remove('open')" class="btn-secondary">Cancel</button>
+      <button onclick="addSlots()" class="btn-primary" id="addSlotsBtn"><i class="bi bi-plus-circle"></i> Add Slots</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.slot-time-label:hover { border-color: var(--nb-blue); background: var(--nb-blue-pale); }
+.slot-time-label:has(input:checked) { border-color: var(--nb-blue); background: var(--nb-blue-pale); }
+</style>
+
+<script>
+function toggleAllTimes() {
+  const checks = document.querySelectorAll('.slot-time-check');
+  const allChecked = Array.from(checks).every(c => c.checked);
+  checks.forEach(c => c.checked = !allChecked);
+}
+
+async function addSlots() {
+  const date = document.getElementById('newSlotDate').value;
+  if (!date) { showToast('Please select a date', 'error'); return; }
+  const times = Array.from(document.querySelectorAll('.slot-time-check:checked')).map(c => c.value);
+  if (!times.length) { showToast('Select at least one time', 'error'); return; }
+  const capacity = parseInt(document.getElementById('slotCapacity').value);
+  const btn = document.getElementById('addSlotsBtn');
+  setLoading(btn, true);
+  const data = await nbFetch('/admin/slots/add', { method: 'POST', body: { date, times, capacity } });
+  setLoading(btn, false);
+  if (data.success) {
+    showToast(`Added ${data.added} slots for ${date}`, 'success');
+    document.getElementById('addSlotModal').classList.remove('open');
+    setTimeout(() => { window.location.href = `/admin/slots?date=${date}`; }, 800);
+  }
+}
+
+async function toggleSlot(slotId, btn) {
+  setLoading(btn, true);
+  const data = await nbFetch(`/admin/slots/${slotId}/toggle`, { method: 'POST' });
+  if (data.success) { showToast(`Slot ${data.is_active ? 'enabled' : 'disabled'}`, 'success'); setTimeout(() => location.reload(), 600); }
+}
+
+async function deleteSlot(slotId, btn) {
+  if (!await nbConfirm('Delete this slot?')) return;
+  setLoading(btn, true);
+  const data = await nbFetch(`/admin/slots/${slotId}/delete`, { method: 'POST' });
+  if (data.success) { showToast('Slot deleted', 'success'); setTimeout(() => location.reload(), 600); }
+  else { setLoading(btn, false); showToast(data.message, 'error'); }
+}
+</script>
+{% endblock %}

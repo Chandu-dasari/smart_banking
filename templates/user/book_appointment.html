@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% block title %}Book Appointment — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand">
+      <div class="nb-logo-icon"><i class="bi bi-bank2"></i></div>
+      <span class="nb-logo-text">NexusBank</span>
+    </div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('user.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+      <a href="{{ url_for('user.book_appointment') }}" class="nb-sidebar__item active"><i class="bi bi-calendar-plus"></i> Book Appointment</a>
+      <a href="{{ url_for('user.my_appointments') }}" class="nb-sidebar__item"><i class="bi bi-calendar-check"></i> My Appointments</a>
+      <a href="{{ url_for('user.profile') }}" class="nb-sidebar__item"><i class="bi bi-person-circle"></i> Profile</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar">{{ current_user.username[0].upper() }}</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Customer</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div>
+        <div class="nb-topbar__title">Book Appointment</div>
+        <div class="nb-topbar__subtitle">Choose your service and pick a time slot</div>
+      </div>
+    </div>
+
+    <div class="nb-content">
+      {% if has_active_booking %}
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:18px 24px;margin-bottom:24px;display:flex;align-items:center;gap:12px">
+        <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:20px"></i>
+        <div>
+          <strong style="color:#92400e">Active Booking Exists</strong>
+          <p style="font-size:13px;color:#78350f;margin:4px 0 0">You already have a pending/approved appointment. Please cancel or complete it before booking again.</p>
+        </div>
+        <a href="{{ url_for('user.my_appointments') }}" class="btn-secondary btn-sm" style="margin-left:auto">View</a>
+      </div>
+      {% endif %}
+
+      <!-- Step 1: Service Selection -->
+      <div class="nb-card" style="margin-bottom:24px" id="step1Card">
+        <div class="nb-card__header">
+          <span class="nb-card__title"><span style="background:var(--nb-blue);color:white;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;margin-right:10px">1</span>Select Service</span>
+        </div>
+        <div class="nb-card__body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
+            {% for svc in services %}
+            <div class="svc-select-card" data-id="{{ svc.id }}" onclick="selectService(this)" style="border:2px solid var(--nb-border);border-radius:14px;padding:20px 16px;cursor:pointer;transition:all 0.2s;text-align:center">
+              <i class="{{ svc.icon }}" style="font-size:28px;color:{{ svc.color }};display:block;margin-bottom:10px"></i>
+              <div style="font-size:14px;font-weight:700;color:var(--nb-navy);margin-bottom:4px">{{ svc.name }}</div>
+              <div style="font-size:12px;color:var(--nb-text-3)">{{ svc.desc }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Date + Slot (theatre style) -->
+      <div id="step2Card" style="display:none">
+        <div class="nb-booking">
+          <!-- Calendar -->
+          <div class="nb-booking__calendar">
+            <div class="nb-calendar">
+              <div class="nb-calendar__header">
+                <button class="nb-calendar__nav" onclick="changeMonth(-1)"><i class="bi bi-chevron-left"></i></button>
+                <span class="nb-calendar__month" id="calMonthLabel"></span>
+                <button class="nb-calendar__nav" onclick="changeMonth(1)"><i class="bi bi-chevron-right"></i></button>
+              </div>
+              <div class="nb-calendar__grid">
+                <div class="nb-calendar__days-header">
+                  {% for d in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
+                  <div class="nb-calendar__day-name">{{ d }}</div>
+                  {% endfor %}
+                </div>
+                <div class="nb-calendar__dates" id="calDates"></div>
+              </div>
+              <div style="padding:0 20px 16px;display:flex;gap:16px;font-size:12px">
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--nb-success);margin-right:5px"></span>Available</span>
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:5px"></span>Partial</span>
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--nb-danger);margin-right:5px"></span>Full</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slots panel (theatre style) -->
+          <div class="nb-booking__slots">
+            <div class="nb-slots-panel">
+              <div class="nb-slots-panel__header">
+                <div style="font-weight:700;color:var(--nb-navy);font-size:16px"><i class="bi bi-clock"></i> Available Slots</div>
+                <div id="selectedDateLabel" style="font-size:13px;color:var(--nb-text-3);margin-top:4px">Select a date first</div>
+              </div>
+              <div class="nb-slots-grid" id="slotsGrid">
+                <div class="nb-empty"><i class="bi bi-calendar3"></i><p>Select a date to view slots</p></div>
+              </div>
+            </div>
+
+            <!-- Booking summary -->
+            <div id="bookingSummary" style="display:none;margin-top:20px" class="nb-card">
+              <div class="nb-card__header"><span class="nb-card__title"><i class="bi bi-receipt"></i> Booking Summary</span></div>
+              <div class="nb-card__body">
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;justify-content:space-between;font-size:14px">
+                    <span style="color:var(--nb-text-3)">Service</span>
+                    <strong id="summService">—</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:14px">
+                    <span style="color:var(--nb-text-3)">Date</span>
+                    <strong id="summDate">—</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:14px">
+                    <span style="color:var(--nb-text-3)">Time</span>
+                    <strong id="summTime">—</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:14px">
+                    <span style="color:var(--nb-text-3)">Seats Left</span>
+                    <strong id="summSeats" style="color:var(--nb-success)">—</strong>
+                  </div>
+                </div>
+                <button onclick="confirmBooking()" class="btn-primary w-full" style="margin-top:20px;justify-content:center;padding:14px" id="confirmBtn">
+                  <i class="bi bi-check-circle"></i> Confirm Booking
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let calMonth = {{ current_month }};
+let calYear = {{ current_year }};
+let calData = {};
+let selectedDate = null;
+let selectedSlotId = null;
+let selectedSlotTime = null;
+let selectedService = null;
+
+// Service selection
+function selectService(el) {
+  document.querySelectorAll('.svc-select-card').forEach(c => {
+    c.style.borderColor = 'var(--nb-border)';
+    c.style.background = 'white';
+  });
+  el.style.borderColor = 'var(--nb-blue)';
+  el.style.background = 'var(--nb-blue-pale)';
+  selectedService = el.dataset.id;
+  document.getElementById('step2Card').style.display = 'block';
+  document.getElementById('step2Card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  loadCalendar();
+}
+
+// Calendar
+async function loadCalendar() {
+  const res = await fetch(`/user/api/calendar-slots?month=${calMonth}&year=${calYear}`);
+  calData = await res.json();
+  renderCalendar();
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 12) { calMonth = 1; calYear++; }
+  if (calMonth < 1) { calMonth = 12; calYear--; }
+  loadCalendar();
+}
+
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = `${months[calMonth-1]} ${calYear}`;
+  const grid = document.getElementById('calDates');
+  grid.innerHTML = '';
+
+  const firstDay = new Date(calYear, calMonth-1, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  // Empty cells
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'nb-cal-date empty';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const info = calData[d] || { available: 0, total: 0 };
+    const el = document.createElement('div');
+    el.className = 'nb-cal-date';
+    if (dateStr === todayStr) el.classList.add('today');
+    if (dateStr === selectedDate) el.classList.add('selected');
+
+    const isPast = new Date(dateStr) < new Date(todayStr);
+    const isWeekend = [0,6].includes(new Date(dateStr).getDay());
+
+    if (isPast || isWeekend) {
+      el.classList.add('disabled');
+    } else {
+      el.onclick = () => selectDate(dateStr, d);
+    }
+
+    el.innerHTML = `<span>${d}</span>`;
+    if (!isPast && !isWeekend && info.total > 0) {
+      const dot = document.createElement('div');
+      dot.className = 'nb-cal-dot';
+      if (info.available === 0) dot.classList.add('nb-cal-dot--full');
+      else if (info.available < info.total) dot.classList.add('nb-cal-dot--partial');
+      else dot.classList.add('nb-cal-dot--avail');
+      el.appendChild(dot);
+    }
+    grid.appendChild(el);
+  }
+}
+
+async function selectDate(dateStr, day) {
+  selectedDate = dateStr;
+  selectedSlotId = null;
+  selectedSlotTime = null;
+  renderCalendar();
+  document.getElementById('selectedDateLabel').textContent = `📅 ${dateStr}`;
+  document.getElementById('bookingSummary').style.display = 'none';
+
+  const res = await fetch(`/user/api/slots/${dateStr}`);
+  const slots = await res.json();
+  renderSlots(slots, dateStr);
+}
+
+function renderSlots(slots, dateStr) {
+  const grid = document.getElementById('slotsGrid');
+  grid.innerHTML = '';
+
+  if (!slots.length) {
+    grid.innerHTML = '<div class="nb-empty"><i class="bi bi-calendar-x"></i><p>No slots available for this date</p></div>';
+    return;
+  }
+
+  // Theatre screen label
+  const screen = document.createElement('div');
+  screen.style.cssText = 'background:linear-gradient(135deg,var(--nb-navy),var(--nb-blue));color:white;border-radius:10px;padding:10px;text-align:center;font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:12px';
+  screen.textContent = '🎬 SELECT YOUR SLOT';
+  grid.appendChild(screen);
+
+  slots.forEach(slot => {
+    const el = document.createElement('div');
+    el.className = 'nb-slot-item';
+    if (!slot.available || slot.booked >= slot.max) el.classList.add('unavail');
+    if (slot.user_booked) { el.classList.add('user-booked'); }
+    if (slot.id === selectedSlotId) el.classList.add('selected');
+
+    // Seat dots
+    const dots = Array.from({length: slot.max}, (_,i) =>
+      `<div class="nb-seat-dot ${i < slot.booked ? 'booked' : 'available'}"></div>`
+    ).join('');
+
+    el.innerHTML = `
+      <div>
+        <div class="nb-slot-time">${slot.time}</div>
+        <div class="nb-slot-seats">${slot.user_booked ? '✓ You booked this' : slot.available ? `${slot.seats_left} seat${slot.seats_left>1?'s':''} left` : 'Full'}</div>
+        <div class="nb-slot-seats-dots">${dots}</div>
+      </div>
+      <div style="text-align:right">
+        ${slot.user_booked
+          ? '<span class="nb-badge nb-badge--approved">Booked</span>'
+          : slot.available
+            ? `<span class="nb-badge nb-badge--approved">Available</span>`
+            : '<span class="nb-badge nb-badge--rejected">Full</span>'}
+      </div>`;
+
+    if (slot.available && !slot.user_booked) {
+      el.onclick = () => selectSlot(slot.id, slot.time, slot.seats_left, dateStr, el);
+    }
+    grid.appendChild(el);
+  });
+}
+
+function selectSlot(slotId, time, seatsLeft, dateStr, el) {
+  document.querySelectorAll('.nb-slot-item').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSlotId = slotId;
+  selectedSlotTime = time;
+
+  const svcName = document.querySelector('.svc-select-card[data-id="' + selectedService + '"]')?.querySelector('div')?.textContent || selectedService;
+  document.getElementById('summService').textContent = svcName;
+  document.getElementById('summDate').textContent = dateStr;
+  document.getElementById('summTime').textContent = time;
+  document.getElementById('summSeats').textContent = seatsLeft;
+  document.getElementById('bookingSummary').style.display = 'block';
+  document.getElementById('bookingSummary').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function confirmBooking() {
+  if (!selectedSlotId || !selectedService) {
+    showToast('Please select a service and time slot', 'error');
+    return;
+  }
+  const btn = document.getElementById('confirmBtn');
+  setLoading(btn, true);
+
+  const data = await nbFetch('/user/api/book', {
+    method: 'POST',
+    body: { slot_id: selectedSlotId, service: selectedService }
+  });
+
+  setLoading(btn, false);
+  if (data.success) {
+    showToast('🎉 ' + data.message, 'success');
+    setTimeout(() => { window.location.href = '/user/my-appointments'; }, 1500);
+  } else {
+    showToast(data.message, 'error');
+  }
+}
+
+// Init
+const today = new Date();
+calMonth = today.getMonth() + 1;
+calYear = today.getFullYear();
+</script>
+{% endblock %}

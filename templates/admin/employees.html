@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Employees — NexusBank Admin{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)"><i class="bi bi-shield-lock"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="{{ url_for('admin.users') }}" class="nb-sidebar__item"><i class="bi bi-people"></i> Users</a>
+      <a href="{{ url_for('admin.employees') }}" class="nb-sidebar__item active"><i class="bi bi-person-badge"></i> Employees</a>
+      <a href="{{ url_for('admin.appointments') }}" class="nb-sidebar__item"><i class="bi bi-calendar-week"></i> Appointments</a>
+      <a href="{{ url_for('admin.slots') }}" class="nb-sidebar__item"><i class="bi bi-clock-history"></i> Manage Slots</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)">A</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Admin</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">Bank Employees</div></div>
+      <div class="nb-topbar__actions">
+        <form method="GET" style="display:flex;gap:8px">
+          <select name="status" class="nb-input nb-select" onchange="this.form.submit()">
+            <option value="">All</option>
+            <option value="pending" {{ 'selected' if status_filter=='pending' }}>Pending</option>
+            <option value="approved" {{ 'selected' if status_filter=='approved' }}>Approved</option>
+          </select>
+        </form>
+      </div>
+    </div>
+    <div class="nb-content">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">
+        {% for item in emp_data %}
+        {% set emp = item.emp %}
+        <div class="nb-card">
+          <div class="nb-card__body" style="padding:24px">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+              <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#0e7490,#06b6d4);display:flex;align-items:center;justify-content:center;color:white;font-size:22px;font-weight:700;flex-shrink:0">{{ emp.username[0].upper() }}</div>
+              <div>
+                <div style="font-size:17px;font-weight:700;color:var(--nb-navy)">{{ emp.username }}</div>
+                <div style="font-size:12px;color:var(--nb-text-3)">{{ emp.emp_id }} · {{ emp.department or 'General' }}</div>
+              </div>
+              <span class="nb-badge nb-badge--{{ emp.status }}" style="margin-left:auto">{{ emp.status.title() }}</span>
+            </div>
+            <div style="font-size:13px;color:var(--nb-text-2);margin-bottom:16px">{{ emp.email }}</div>
+
+            <!-- Workload indicator (soldout style if full) -->
+            {% if item.active >= 2 %}
+            <div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:white;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:700">
+              🚫 AT CAPACITY — {{ item.active }}/2 Active Customers
+            </div>
+            {% else %}
+            <div style="background:#f0fdf4;border-radius:10px;padding:10px 14px;margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+                <span style="color:var(--nb-text-2)">Workload</span>
+                <span style="font-weight:600;color:var(--nb-navy)">{{ item.active }}/2 active</span>
+              </div>
+              <div style="background:#e2e8f0;border-radius:4px;height:6px">
+                <div style="background:{% if item.active == 0 %}var(--nb-success){% elif item.active == 1 %}var(--nb-warning){% else %}var(--nb-danger){% endif %};height:6px;border-radius:4px;width:{{ (item.active / 2 * 100)|int }}%"></div>
+              </div>
+            </div>
+            {% endif %}
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;text-align:center">
+              <div style="background:var(--nb-bg);border-radius:8px;padding:10px">
+                <div style="font-size:18px;font-weight:700;color:var(--nb-navy)">{{ item.total }}</div>
+                <div style="font-size:11px;color:var(--nb-text-3)">Total</div>
+              </div>
+              <div style="background:var(--nb-bg);border-radius:8px;padding:10px">
+                <div style="font-size:18px;font-weight:700;color:var(--nb-warning)">{{ item.active }}</div>
+                <div style="font-size:11px;color:var(--nb-text-3)">Active</div>
+              </div>
+              <div style="background:var(--nb-bg);border-radius:8px;padding:10px">
+                <div style="font-size:18px;font-weight:700;color:var(--nb-success)">{{ item.completed }}</div>
+                <div style="font-size:11px;color:var(--nb-text-3)">Done</div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              {% if emp.status == 'pending' %}
+              <button onclick="approveEmp({{ emp.id }}, this)" class="btn-success w-full" style="justify-content:center"><i class="bi bi-check"></i> Approve</button>
+              {% endif %}
+              <button onclick="deleteEmp({{ emp.id }}, '{{ emp.username }}')" class="btn-danger {% if emp.status != 'pending' %}w-full{% endif %}" style="justify-content:center"><i class="bi bi-trash"></i></button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not emp_data %}
+        <div style="grid-column:1/-1"><div class="nb-card"><div class="nb-empty"><i class="bi bi-person-badge"></i><h3>No employees found</h3></div></div></div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+async function approveEmp(empId, btn) {
+  setLoading(btn, true);
+  const data = await nbFetch(`/admin/employees/${empId}/approve`, { method: 'POST' });
+  if (data.success) { showToast('Employee approved!', 'success'); setTimeout(() => location.reload(), 800); }
+  else { setLoading(btn, false); showToast('Failed', 'error'); }
+}
+async function deleteEmp(empId, name) {
+  if (!await nbConfirm(`Remove employee "${name}"?`)) return;
+  const data = await nbFetch(`/admin/employees/${empId}/delete`, { method: 'POST' });
+  if (data.success) { showToast('Employee removed', 'success'); setTimeout(() => location.reload(), 800); }
+}
+</script>
+{% endblock %}

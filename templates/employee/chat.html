@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}Chat — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand">
+      <div class="nb-logo-icon" style="background:linear-gradient(135deg,#0e7490,#06b6d4)"><i class="bi bi-person-badge"></i></div>
+      <span class="nb-logo-text">NexusBank</span>
+    </div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('employee.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#0e7490,#06b6d4)">{{ current_user.username[0].upper() }}</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">{{ current_user.department or 'Employee' }}</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div>
+        <div class="nb-topbar__title">Chat with Customer</div>
+        <div class="nb-topbar__subtitle">{{ appointment.user.username }} — {{ appointment.service.replace('_',' ').title() }}</div>
+      </div>
+      <div class="nb-topbar__actions">
+        <a href="{{ url_for('employee.customer_detail', apt_id=appointment.id) }}" class="btn-secondary btn-sm"><i class="bi bi-person-badge"></i> Profile</a>
+        <a href="{{ url_for('employee.dashboard') }}" class="btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+      </div>
+    </div>
+
+    <div class="nb-content" style="padding:24px;height:calc(100vh - 130px);display:flex;flex-direction:column">
+      <div class="nb-chat" style="flex:1">
+        <div class="nb-chat__header">
+          <div class="nb-chat__avatar">{{ appointment.user.username[0].upper() }}</div>
+          <div>
+            <div class="nb-chat__name">{{ appointment.user.username }}</div>
+            <div class="nb-chat__status">Customer</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--nb-text-3);background:var(--nb-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--nb-border)">
+              <i class="bi bi-shop"></i> {{ appointment.counter or '—' }}
+            </span>
+            <span style="font-size:13px;color:var(--nb-text-3)"><i class="bi bi-shield-check" style="color:var(--nb-blue)"></i> Secure</span>
+          </div>
+        </div>
+
+        <div class="nb-chat__messages" id="chatMessages">
+          {% for msg in messages %}
+          <div class="nb-msg nb-msg--{{ msg.sender_type }}" id="msg-{{ msg.id }}">
+            <div class="nb-msg__avatar">{{ appointment.user.username[0].upper() if msg.sender_type == 'user' else current_user.username[0].upper() }}</div>
+            <div class="nb-msg__bubble">
+              {% if msg.message %}<div class="nb-msg__text">{{ msg.message }}</div>{% endif %}
+              {% if msg.file_url %}
+                {% if msg.file_type == 'image' %}
+                <img src="{{ msg.file_url }}" class="nb-msg__img" onclick="window.open(this.src)">
+                {% else %}
+                <a href="{{ msg.file_url }}" class="nb-msg__file" target="_blank"><i class="bi bi-file-earmark"></i> {{ msg.file_url.split('/')[-1][:30] }}</a>
+                {% endif %}
+              {% endif %}
+              <div class="nb-msg__time">{{ msg.timestamp.strftime('%I:%M %p') }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="nb-chat__input">
+          <label for="fileInput" class="nb-chat__attach" title="Attach file/image/document"><i class="bi bi-paperclip"></i></label>
+          <input type="file" id="fileInput" style="display:none" accept="image/*,.pdf,.doc,.docx,.xlsx,.csv" onchange="previewFile(this)">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <div id="filePreview" style="display:none;font-size:12px;color:var(--nb-blue);background:var(--nb-blue-pale);padding:6px 10px;border-radius:8px"></div>
+            <textarea id="msgInput" class="nb-chat__textarea" rows="1" placeholder="Type your message..." onkeydown="handleEnter(event)"></textarea>
+          </div>
+          <button class="nb-chat__send" onclick="sendMessage()"><i class="bi bi-send-fill"></i></button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const APT_ID = {{ appointment.id }};
+let lastMsgId = {{ messages[-1].id if messages else 0 }};
+let sending = false;
+
+function scrollToBottom() {
+  const msgs = document.getElementById('chatMessages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function previewFile(input) {
+  const preview = document.getElementById('filePreview');
+  if (input.files[0]) {
+    preview.style.display = 'block';
+    preview.innerHTML = `<i class="bi bi-paperclip"></i> ${input.files[0].name} <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:var(--nb-danger)"><i class="bi bi-x"></i></button>`;
+  }
+}
+
+function clearFile() {
+  document.getElementById('fileInput').value = '';
+  document.getElementById('filePreview').style.display = 'none';
+}
+
+function handleEnter(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+async function sendMessage() {
+  if (sending) return;
+  const input = document.getElementById('msgInput');
+  const fileInput = document.getElementById('fileInput');
+  const text = input.value.trim();
+  const hasFile = fileInput.files[0];
+  if (!text && !hasFile) return;
+
+  sending = true;
+  const btn = document.querySelector('.nb-chat__send');
+  btn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('appointment_id', APT_ID);
+  if (text) fd.append('message', text);
+  if (hasFile) fd.append('file', fileInput.files[0]);
+
+  try {
+    const res = await fetch('/employee/api/chat/send', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      input.value = '';
+      clearFile();
+      await fetchNewMessages();
+    }
+  } catch(e) { showToast('Failed to send', 'error'); }
+  sending = false;
+  btn.disabled = false;
+  input.focus();
+}
+
+function appendMessage(msg) {
+  const type = msg.sender_type;
+  const isEmp = type === 'employee';
+  const name = isEmp ? '{{ current_user.username[0].upper() }}' : '{{ appointment.user.username[0].upper() }}';
+  const div = document.createElement('div');
+  div.className = `nb-msg nb-msg--${type}`;
+  div.id = `msg-${msg.id}`;
+  let content = '';
+  if (msg.message) content += `<div class="nb-msg__text">${msg.message.replace(/</g,'&lt;')}</div>`;
+  if (msg.file_url) {
+    if (msg.file_type === 'image') content += `<img src="${msg.file_url}" class="nb-msg__img" onclick="window.open(this.src)">`;
+    else content += `<a href="${msg.file_url}" class="nb-msg__file" target="_blank"><i class="bi bi-file-earmark"></i> ${msg.file_url.split('/').pop().substring(0,30)}</a>`;
+  }
+  content += `<div class="nb-msg__time">${msg.timestamp}</div>`;
+  div.innerHTML = `<div class="nb-msg__avatar">${name}</div><div class="nb-msg__bubble">${content}</div>`;
+  document.getElementById('chatMessages').appendChild(div);
+  scrollToBottom();
+}
+
+async function fetchNewMessages() {
+  try {
+    const res = await fetch(`/employee/api/chat/messages/${APT_ID}?since=${lastMsgId}`);
+    const msgs = await res.json();
+    msgs.forEach(m => { if (m.id > lastMsgId) { appendMessage(m); lastMsgId = m.id; } });
+  } catch(e) {}
+}
+
+setInterval(fetchNewMessages, 2000);
+scrollToBottom();
+</script>
+{% endblock %}

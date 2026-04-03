@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Employee Registration — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-auth">
+  <div class="nb-auth-card nb-auth-card--wide">
+    <div class="nb-auth-header">
+      <div class="nb-auth-logo" style="background:linear-gradient(135deg,#0891b2,#06b6d4)"><i class="bi bi-person-badge"></i></div>
+      <h1 class="nb-auth-title">Employee Registration</h1>
+      <p class="nb-auth-subtitle">Join the NexusBank team</p>
+    </div>
+    <form action="{{ url_for('auth.employee_register') }}" method="POST" class="nb-form">
+      <div class="nb-form-row">
+        <div class="nb-form-group">
+          <label class="nb-label">Employee ID <span>*</span></label>
+          <input name="emp_id" type="text" class="nb-input" placeholder="NB-EMP-001" required>
+        </div>
+        <div class="nb-form-group">
+          <label class="nb-label">Full Name <span>*</span></label>
+          <input name="username" type="text" class="nb-input" placeholder="Ravi Kumar" required>
+        </div>
+      </div>
+      <div class="nb-form-row">
+        <div class="nb-form-group">
+          <label class="nb-label">Email <span>*</span></label>
+          <input name="email" type="email" class="nb-input" placeholder="emp@nexusbank.com" required>
+        </div>
+        <div class="nb-form-group">
+          <label class="nb-label">Password <span>*</span></label>
+          <input name="password" type="password" class="nb-input" placeholder="Set a strong password" required>
+        </div>
+      </div>
+      <div class="nb-form-row">
+        <div class="nb-form-group">
+          <label class="nb-label">Department</label>
+          <select name="department" class="nb-input nb-select">
+            <option value="">Select Department</option>
+            <option value="Loans">Loans</option>
+            <option value="Accounts">Accounts</option>
+            <option value="Customer Service">Customer Service</option>
+            <option value="KYC">KYC & Compliance</option>
+            <option value="Insurance">Insurance</option>
+            <option value="Digital Banking">Digital Banking</option>
+          </select>
+        </div>
+        <div class="nb-form-group">
+          <label class="nb-label">Contact</label>
+          <input name="contact" type="tel" class="nb-input" placeholder="+91 9876543210">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary w-full" style="justify-content:center;padding:14px">
+        <i class="bi bi-person-plus"></i> Submit Registration
+      </button>
+    </form>
+    <div class="nb-auth-footer">
+      Already registered? <a href="{{ url_for('auth.employee_login') }}">Employee Login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

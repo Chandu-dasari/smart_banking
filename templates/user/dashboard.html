@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <!-- Sidebar -->
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand">
+      <div class="nb-logo-icon"><i class="bi bi-bank2"></i></div>
+      <span class="nb-logo-text">NexusBank</span>
+    </div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('user.dashboard') }}" class="nb-sidebar__item active">
+        <i class="bi bi-grid-1x2"></i> Dashboard
+      </a>
+      <a href="{{ url_for('user.book_appointment') }}" class="nb-sidebar__item">
+        <i class="bi bi-calendar-plus"></i> Book Appointment
+      </a>
+      <a href="{{ url_for('user.my_appointments') }}" class="nb-sidebar__item">
+        <i class="bi bi-calendar-check"></i> My Appointments
+      </a>
+      <a href="{{ url_for('user.profile') }}" class="nb-sidebar__item">
+        <i class="bi bi-person-circle"></i> Profile
+      </a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar">{{ current_user.username[0].upper() }}</div>
+      <div>
+        <div class="nb-sidebar__user-name">{{ current_user.username }}</div>
+        <div class="nb-sidebar__user-role">Customer</div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div>
+        <div class="nb-topbar__title">Welcome, {{ current_user.username }} 👋</div>
+        <div class="nb-topbar__subtitle">{{ now().strftime('%A, %d %B %Y') if now else 'NexusBank Dashboard' }}</div>
+      </div>
+      <div class="nb-topbar__actions">
+        {% if notifications %}
+        <a href="#" class="nb-notif-btn" id="notifBtn" title="Notifications">
+          <i class="bi bi-bell"></i>
+          <span class="nb-notif-dot"></span>
+        </a>
+        {% endif %}
+        <a href="{{ url_for('user.book_appointment') }}" class="btn-primary btn-sm">
+          <i class="bi bi-plus-circle"></i> Book Appointment
+        </a>
+      </div>
+    </div>
+
+    <div class="nb-content">
+      <!-- Stats -->
+      <div class="nb-stats-row">
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header">
+            <div class="nb-stat-card__icon nb-stat-card__icon--amber"><i class="bi bi-hourglass-split"></i></div>
+          </div>
+          <div class="nb-stat-card__num">{{ pending }}</div>
+          <div class="nb-stat-card__label">Pending Appointments</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header">
+            <div class="nb-stat-card__icon nb-stat-card__icon--green"><i class="bi bi-check-circle"></i></div>
+          </div>
+          <div class="nb-stat-card__num">{{ approved }}</div>
+          <div class="nb-stat-card__label">Approved Appointments</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header">
+            <div class="nb-stat-card__icon nb-stat-card__icon--blue"><i class="bi bi-award"></i></div>
+          </div>
+          <div class="nb-stat-card__num">{{ completed }}</div>
+          <div class="nb-stat-card__label">Completed Services</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header">
+            <div class="nb-stat-card__icon nb-stat-card__icon--purple"><i class="bi bi-shield-check"></i></div>
+          </div>
+          <div class="nb-stat-card__num" style="font-size:20px">{{ current_user.status.title() }}</div>
+          <div class="nb-stat-card__label">Account Status</div>
+        </div>
+      </div>
+
+      <!-- Account info + Recent appointments -->
+      <div class="nb-grid-2" style="margin-bottom:32px">
+        <!-- Account Card -->
+        <div class="nb-card">
+          <div class="nb-card__header">
+            <span class="nb-card__title">Account Information</span>
+            <span class="nb-badge nb-badge--{{ current_user.status }}">
+              <i class="bi bi-circle-fill" style="font-size:8px"></i>
+              {{ current_user.status.title() }}
+            </span>
+          </div>
+          <div class="nb-card__body">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+              {% if current_user.face_image %}
+              <img src="/static/uploads/faces/{{ current_user.face_image }}" class="nb-profile-img" alt="Profile">
+              {% else %}
+              <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--nb-navy),var(--nb-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:32px;font-weight:700">{{ current_user.username[0].upper() }}</div>
+              {% endif %}
+              <div>
+                <div style="font-size:20px;font-weight:700;color:var(--nb-navy)">{{ current_user.username }}</div>
+                <div style="font-size:14px;color:var(--nb-text-3)">{{ current_user.email }}</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--nb-border)">
+                <span style="font-size:13px;color:var(--nb-text-3)"><i class="bi bi-phone"></i> Contact</span>
+                <span style="font-size:13px;font-weight:600">{{ current_user.contact or '—' }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--nb-border)">
+                <span style="font-size:13px;color:var(--nb-text-3)"><i class="bi bi-calendar"></i> Date of Birth</span>
+                <span style="font-size:13px;font-weight:600">{{ current_user.dob or '—' }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--nb-border)">
+                <span style="font-size:13px;color:var(--nb-text-3)"><i class="bi bi-card-text"></i> ID Type</span>
+                <span style="font-size:13px;font-weight:600">{{ current_user.id_type or '—' }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0">
+                <span style="font-size:13px;color:var(--nb-text-3)"><i class="bi bi-shield-check"></i> Face ID</span>
+                <span style="font-size:13px;font-weight:600;color:{% if current_user.face_encoding %}var(--nb-success){% else %}var(--nb-danger){% endif %}">
+                  {% if current_user.face_encoding %}Registered ✓{% else %}Not Registered{% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Services -->
+        <div class="nb-card">
+          <div class="nb-card__header"><span class="nb-card__title">Quick Services</span></div>
+          <div class="nb-card__body" style="padding:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              {% for svc in services[:6] %}
+              <a href="{{ url_for('user.book_appointment') }}" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 12px;border-radius:12px;border:1.5px solid var(--nb-border);text-decoration:none;transition:all 0.2s;text-align:center" class="svc-quick-btn">
+                <i class="{{ svc.icon }}" style="font-size:22px;color:{{ svc.color }}"></i>
+                <span style="font-size:12px;font-weight:600;color:var(--nb-navy);line-height:1.3">{{ svc.name }}</span>
+              </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Appointments -->
+      <div class="nb-table-card">
+        <div class="nb-table-card__header">
+          <span class="nb-table-card__title">Recent Appointments</span>
+          <a href="{{ url_for('user.my_appointments') }}" class="btn-secondary btn-sm">View All</a>
+        </div>
+        {% if appointments %}
+        <table class="nb-table">
+          <thead>
+            <tr>
+              <th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Staff</th><th>Counter</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for apt in appointments %}
+            <tr>
+              <td><strong>{{ apt.service.replace('_',' ').title() }}</strong></td>
+              <td>{{ apt.slot.date }}</td>
+              <td>{{ apt.slot.time }}</td>
+              <td><span class="nb-badge nb-badge--{{ apt.status }}">{{ apt.status.title() }}</span></td>
+              <td>{{ apt.employee.username if apt.employee else '—' }}</td>
+              <td>{{ apt.counter or '—' }}</td>
+              <td>
+                {% if apt.status == 'approved' and apt.employee_id %}
+                <a href="{{ url_for('user.chat', apt_id=apt.id) }}" class="btn-primary btn-sm"><i class="bi bi-chat"></i> Chat</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="nb-empty">
+          <i class="bi bi-calendar-x"></i>
+          <h3>No appointments yet</h3>
+          <p>Book your first appointment to get started</p>
+          <a href="{{ url_for('user.book_appointment') }}" class="btn-primary" style="margin-top:16px"><i class="bi bi-plus-circle"></i> Book Now</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<style>
+.svc-quick-btn:hover { border-color: var(--nb-blue) !important; background: var(--nb-blue-pale); transform: translateY(-2px); }
+</style>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Customer Profile — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand">
+      <div class="nb-logo-icon" style="background:linear-gradient(135deg,#0e7490,#06b6d4)"><i class="bi bi-person-badge"></i></div>
+      <span class="nb-logo-text">NexusBank</span>
+    </div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('employee.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#0e7490,#06b6d4)">{{ current_user.username[0].upper() }}</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">{{ current_user.department or 'Employee' }}</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">Customer Profile</div></div>
+      <div class="nb-topbar__actions">
+        <a href="{{ url_for('employee.chat', apt_id=appointment.id) }}" class="btn-primary btn-sm"><i class="bi bi-chat-dots"></i> Open Chat</a>
+        <a href="{{ url_for('employee.dashboard') }}" class="btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+      </div>
+    </div>
+
+    <div class="nb-content">
+      <div class="nb-grid-2">
+        <!-- Profile -->
+        <div class="nb-card">
+          <div class="nb-card__body" style="text-align:center;padding:40px">
+            {% if user.face_image %}
+            <img src="/static/uploads/faces/{{ user.face_image }}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid var(--nb-border);margin-bottom:16px">
+            {% else %}
+            <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--nb-navy),var(--nb-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:42px;font-weight:700;margin:0 auto 16px">{{ user.username[0].upper() }}</div>
+            {% endif %}
+            <div style="font-size:22px;font-weight:700;color:var(--nb-navy)">{{ user.username }}</div>
+            <div style="color:var(--nb-text-3);margin:6px 0 16px">{{ user.email }}</div>
+          </div>
+          <div style="border-top:1px solid var(--nb-border);padding:24px">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              {% for label, val, icon in [
+                ('Contact', user.contact, 'telephone'),
+                ('Date of Birth', user.dob, 'calendar'),
+                ('Occupation', user.occupation, 'briefcase'),
+                ('ID Type', user.id_type, 'card-text'),
+                ('ID Number', user.id_number, 'shield-check'),
+                ('Address', user.address, 'geo-alt')
+              ] %}
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="width:36px;height:36px;border-radius:10px;background:var(--nb-blue-pale);display:flex;align-items:center;justify-content:center;color:var(--nb-blue);flex-shrink:0"><i class="bi bi-{{ icon }}"></i></div>
+                <div>
+                  <div style="font-size:12px;color:var(--nb-text-3)">{{ label }}</div>
+                  <div style="font-size:14px;font-weight:600;color:var(--nb-navy)">{{ val or '—' }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Appointment Details -->
+        <div class="nb-card">
+          <div class="nb-card__header"><span class="nb-card__title">Appointment Details</span></div>
+          <div class="nb-card__body">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="background:linear-gradient(135deg,var(--nb-navy),var(--nb-blue));border-radius:14px;padding:20px;color:white">
+                <div style="font-size:12px;opacity:0.7;margin-bottom:4px">Service</div>
+                <div style="font-size:20px;font-weight:700">{{ appointment.service.replace('_',' ').title() }}</div>
+              </div>
+              {% for label, val in [
+                ('Date', appointment.slot.date),
+                ('Time', appointment.slot.time),
+                ('Counter', appointment.counter or '—'),
+                ('Status', appointment.status.title())
+              ] %}
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--nb-border)">
+                <span style="font-size:13px;color:var(--nb-text-3)">{{ label }}</span>
+                <span style="font-size:14px;font-weight:600;color:var(--nb-navy)">{{ val }}</span>
+              </div>
+              {% endfor %}
+              {% if appointment.notes %}
+              <div style="padding:14px;background:#fffbeb;border-radius:10px;font-size:13px;color:#78350f">
+                <strong>Notes:</strong> {{ appointment.notes }}
+              </div>
+              {% endif %}
+            </div>
+            <div style="display:flex;gap:12px;margin-top:24px">
+              <a href="{{ url_for('employee.chat', apt_id=appointment.id) }}" class="btn-primary w-full" style="justify-content:center"><i class="bi bi-chat-dots"></i> Start Chat</a>
+              <button onclick="markComplete({{ appointment.id }}, this)" class="btn-success w-full" style="justify-content:center"><i class="bi bi-check-circle"></i> Mark Complete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+async function markComplete(aptId, btn) {
+  if (!await nbConfirm('Mark this appointment as completed?')) return;
+  setLoading(btn, true);
+  const data = await nbFetch(`/employee/api/complete/${aptId}`, { method: 'POST' });
+  if (data.success) { showToast('✅ Marked as completed!', 'success'); setTimeout(() => { window.location.href = '{{ url_for("employee.dashboard") }}'; }, 1000); }
+  else { setLoading(btn, false); showToast('Error', 'error'); }
+}
+</script>
+{% endblock %}

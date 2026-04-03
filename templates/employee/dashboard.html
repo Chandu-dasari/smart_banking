@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Employee Dashboard — NexusBank{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand">
+      <div class="nb-logo-icon" style="background:linear-gradient(135deg,#0e7490,#06b6d4)"><i class="bi bi-person-badge"></i></div>
+      <span class="nb-logo-text">NexusBank</span>
+    </div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('employee.dashboard') }}" class="nb-sidebar__item active"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#0e7490,#06b6d4)">{{ current_user.username[0].upper() }}</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">{{ current_user.department or 'Employee' }}</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div>
+        <div class="nb-topbar__title">Welcome, {{ current_user.username }} 👋</div>
+        <div class="nb-topbar__subtitle">{{ current_user.emp_id }} · {{ current_user.department or 'Bank Staff' }}</div>
+      </div>
+    </div>
+
+    <div class="nb-content">
+      <!-- Stats -->
+      <div class="nb-stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:32px">
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header"><div class="nb-stat-card__icon nb-stat-card__icon--amber"><i class="bi bi-hourglass-split"></i></div></div>
+          <div class="nb-stat-card__num">{{ pending_count }}</div>
+          <div class="nb-stat-card__label">Active Customers</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header"><div class="nb-stat-card__icon nb-stat-card__icon--green"><i class="bi bi-check-circle"></i></div></div>
+          <div class="nb-stat-card__num">{{ completed_count }}</div>
+          <div class="nb-stat-card__label">Completed</div>
+        </div>
+        <div class="nb-stat-card">
+          <div class="nb-stat-card__header"><div class="nb-stat-card__icon nb-stat-card__icon--blue"><i class="bi bi-people"></i></div></div>
+          <div class="nb-stat-card__num">{{ total_count }}</div>
+          <div class="nb-stat-card__label">Total Assigned</div>
+        </div>
+      </div>
+
+      <!-- Capacity bar -->
+      {% if pending_count >= 2 %}
+      <div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:white;border-radius:14px;padding:18px 24px;margin-bottom:24px;display:flex;align-items:center;gap:14px">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:24px"></i>
+        <div>
+          <strong>At Full Capacity</strong>
+          <p style="font-size:13px;opacity:0.85;margin:4px 0 0">You have {{ pending_count }}/2 active customers. Complete current tasks before new ones can be assigned.</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="nb-grid-2">
+        <!-- Assigned Customers -->
+        <div>
+          <h2 style="font-family:var(--nb-serif);font-size:20px;color:var(--nb-navy);margin-bottom:16px">
+            <i class="bi bi-person-lines-fill" style="color:var(--nb-blue)"></i> Active Customers
+          </h2>
+          {% if assigned %}
+            {% for apt in assigned %}
+            <div class="nb-card" style="margin-bottom:16px;border-left:4px solid var(--nb-blue)">
+              <div class="nb-card__body" style="padding:20px">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--nb-navy),var(--nb-blue));display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:700;flex-shrink:0">{{ apt.user.username[0].upper() }}</div>
+                    <div>
+                      <div style="font-weight:700;font-size:16px;color:var(--nb-navy)">{{ apt.user.username }}</div>
+                      <div style="font-size:13px;color:var(--nb-text-3)">{{ apt.user.email }}</div>
+                      <div style="margin-top:6px">
+                        <span style="font-size:13px;color:var(--nb-blue);font-weight:600">{{ apt.service.replace('_',' ').title() }}</span>
+                        <span style="font-size:12px;color:var(--nb-text-3);margin-left:8px">{{ apt.slot.date }} · {{ apt.slot.time }}</span>
+                      </div>
+                      {% if apt.counter %}
+                      <div style="font-size:12px;color:var(--nb-text-3);margin-top:4px"><i class="bi bi-shop"></i> {{ apt.counter }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if unread.get(apt.id, 0) > 0 %}
+                  <span class="nb-badge nb-badge--info"><i class="bi bi-chat-dots"></i> {{ unread[apt.id] }} new</span>
+                  {% endif %}
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px">
+                  <a href="{{ url_for('employee.customer_detail', apt_id=apt.id) }}" class="btn-secondary btn-sm"><i class="bi bi-person-badge"></i> View Profile</a>
+                  <a href="{{ url_for('employee.chat', apt_id=apt.id) }}" class="btn-primary btn-sm" style="{% if unread.get(apt.id,0)>0 %}background:linear-gradient(135deg,#16a34a,#22c55e){% endif %}">
+                    <i class="bi bi-chat-dots"></i> Chat{% if unread.get(apt.id,0)>0 %} ({{ unread[apt.id] }}){% endif %}
+                  </a>
+                  <button onclick="markComplete({{ apt.id }}, this)" class="btn-success btn-sm"><i class="bi bi-check-circle"></i> Complete</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="nb-card">
+            <div class="nb-empty" style="padding:40px">
+              <i class="bi bi-inbox"></i>
+              <h3>No active customers</h3>
+              <p>Customers will appear here once admin assigns them to you</p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Completed -->
+        <div>
+          <h2 style="font-family:var(--nb-serif);font-size:20px;color:var(--nb-navy);margin-bottom:16px">
+            <i class="bi bi-check-circle-fill" style="color:var(--nb-success)"></i> Recently Completed
+          </h2>
+          {% if completed %}
+            {% for apt in completed %}
+            <div class="nb-card" style="margin-bottom:12px;border-left:4px solid var(--nb-success)">
+              <div class="nb-card__body" style="padding:16px 20px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                  <div>
+                    <div style="font-weight:600;color:var(--nb-navy)">{{ apt.user.username }}</div>
+                    <div style="font-size:13px;color:var(--nb-text-2)">{{ apt.service.replace('_',' ').title() }}</div>
+                    <div style="font-size:12px;color:var(--nb-text-3)">{{ apt.slot.date }} · {{ apt.slot.time }}</div>
+                  </div>
+                  <span class="nb-badge nb-badge--completed"><i class="bi bi-check-circle-fill"></i> Done</span>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="nb-card">
+            <div class="nb-empty" style="padding:40px">
+              <i class="bi bi-check2-all"></i>
+              <h3>No completed tasks yet</h3>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+async function markComplete(aptId, btn) {
+  if (!await nbConfirm('Mark this customer as completed?')) return;
+  setLoading(btn, true);
+  const data = await nbFetch(`/employee/api/complete/${aptId}`, { method: 'POST' });
+  if (data.success) { showToast('✅ Marked as completed!', 'success'); setTimeout(() => location.reload(), 800); }
+  else { setLoading(btn, false); showToast(data.message || 'Error', 'error'); }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}Appointments — NexusBank Admin{% endblock %}
+{% block body %}
+<div class="nb-dash">
+  <aside class="nb-sidebar">
+    <div class="nb-sidebar__brand"><div class="nb-logo-icon" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)"><i class="bi bi-shield-lock"></i></div><span class="nb-logo-text">NexusBank</span></div>
+    <nav class="nb-sidebar__nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="nb-sidebar__item"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="{{ url_for('admin.users') }}" class="nb-sidebar__item"><i class="bi bi-people"></i> Users</a>
+      <a href="{{ url_for('admin.employees') }}" class="nb-sidebar__item"><i class="bi bi-person-badge"></i> Employees</a>
+      <a href="{{ url_for('admin.appointments') }}" class="nb-sidebar__item active"><i class="bi bi-calendar-week"></i> Appointments</a>
+      <a href="{{ url_for('admin.slots') }}" class="nb-sidebar__item"><i class="bi bi-clock-history"></i> Manage Slots</a>
+    </nav>
+    <div class="nb-sidebar__user">
+      <div class="nb-sidebar__avatar" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)">A</div>
+      <div><div class="nb-sidebar__user-name">{{ current_user.username }}</div><div class="nb-sidebar__user-role">Admin</div></div>
+      <a href="{{ url_for('auth.logout') }}" class="nb-sidebar__logout"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+  </aside>
+  <main class="nb-main">
+    <div class="nb-topbar">
+      <div><div class="nb-topbar__title">Appointments</div></div>
+      <div class="nb-topbar__actions">
+        <form style="display:flex;gap:8px" method="GET">
+          <input type="date" name="date" value="{{ date_filter }}" class="nb-input" style="width:150px">
+          <select name="status" class="nb-input nb-select" style="width:130px" onchange="this.form.submit()">
+            <option value="">All</option>
+            <option value="pending" {{ 'selected' if status_filter=='pending' }}>Pending</option>
+            <option value="approved" {{ 'selected' if status_filter=='approved' }}>Approved</option>
+            <option value="rejected" {{ 'selected' if status_filter=='rejected' }}>Rejected</option>
+            <option value="completed" {{ 'selected' if status_filter=='completed' }}>Completed</option>
+          </select>
+          <button type="submit" class="btn-primary btn-sm"><i class="bi bi-filter"></i></button>
+        </form>
+      </div>
+    </div>
+    <div class="nb-content">
+      <div class="nb-table-card">
+        <table class="nb-table">
+          <thead><tr><th>Customer</th><th>Service</th><th>Date & Time</th><th>Status</th><th>Staff</th><th>Counter</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for apt in appointments %}
+            <tr id="apt-row-{{ apt.id }}">
+              <td>
+                <div style="font-weight:600;color:var(--nb-navy)">{{ apt.user.username }}</div>
+                <div style="font-size:12px;color:var(--nb-text-3)">{{ apt.user.email }}</div>
+              </td>
+              <td style="font-weight:500">{{ apt.service.replace('_',' ').title() }}</td>
+              <td>{{ apt.slot.date }}<div style="font-size:12px;color:var(--nb-text-3)">{{ apt.slot.time }}</div></td>
+              <td><span class="nb-badge nb-badge--{{ apt.status }}">{{ apt.status.title() }}</span></td>
+              <td style="font-size:13px">{{ apt.employee.username if apt.employee else '—' }}</td>
+              <td style="font-size:13px">{{ apt.counter or '—' }}</td>
+              <td>
+                {% if apt.status == 'pending' %}
+                <div style="display:flex;gap:6px">
+                  <button onclick="openAllocate({{ apt.id }}, '{{ apt.user.username }}')" class="btn-success btn-sm"><i class="bi bi-person-plus"></i> Allocate</button>
+                  <button onclick="rejectApt({{ apt.id }})" class="btn-danger btn-sm"><i class="bi bi-x"></i> Reject</button>
+                </div>
+                {% else %}
+                <span style="font-size:12px;color:var(--nb-text-3)">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if not appointments %}
+        <div class="nb-empty"><i class="bi bi-calendar-x"></i><h3>No appointments found</h3></div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Allocate Modal -->
+<div class="nb-modal-overlay" id="allocateModal">
+  <div class="nb-modal" style="max-width:540px">
+    <div class="nb-modal__header">
+      <span class="nb-modal__title">Allocate Appointment</span>
+      <button class="nb-modal__close" onclick="closeModal('allocateModal')"><i class="bi bi-x"></i></button>
+    </div>
+    <p id="allocateFor" style="color:var(--nb-text-2);font-size:14px;margin-bottom:20px"></p>
+
+    <div class="nb-form" style="gap:16px">
+      <div class="nb-form-group">
+        <label class="nb-label">Assign Bank Staff</label>
+        <select id="empSelect" class="nb-input nb-select">
+          <option value="">No staff assigned</option>
+          {% for emp in employees %}
+          <option value="{{ emp.id }}" data-load="{{ emp_load.get(emp.id, 0) }}" data-dept="{{ emp.department }}">
+            {{ emp.username }} ({{ emp.department }})
+            {% if emp_load.get(emp.id, 0) >= 2 %} — FULL{% else %} — {{ emp_load.get(emp.id, 0) }}/2{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+        <div id="empLoadWarning" style="display:none;margin-top:8px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#92400e">
+          <i class="bi bi-exclamation-triangle"></i> <span id="empLoadMsg"></span>
+        </div>
+      </div>
+      <div class="nb-form-group">
+        <label class="nb-label">Assign Counter</label>
+        <select id="counterSelect" class="nb-input nb-select">
+          <option value="">Select counter</option>
+          {% for i in range(1, 11) %}
+          <option value="Counter {{ i }}">Counter {{ i }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end">
+      <button onclick="closeModal('allocateModal')" class="btn-secondary">Cancel</button>
+      <button onclick="confirmAllocate()" class="btn-primary" id="allocateBtn"><i class="bi bi-check-circle"></i> Approve & Allocate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="nb-modal-overlay" id="rejectAptModal">
+  <div class="nb-modal">
+    <div class="nb-modal__header">
+      <span class="nb-modal__title">Reject Appointment</span>
+      <button class="nb-modal__close" onclick="closeModal('rejectAptModal')"><i class="bi bi-x"></i></button>
+    </div>
+    <div class="nb-form-group">
+      <label class="nb-label">Reason</label>
+      <textarea id="rejectAptReason" class="nb-input" rows="3" placeholder="Reason for rejection..."></textarea>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end">
+      <button onclick="closeModal('rejectAptModal')" class="btn-secondary">Cancel</button>
+      <button onclick="confirmRejectApt()" class="btn-danger"><i class="bi bi-x-circle"></i> Reject</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentAptId = null;
+const empLoad = {{ emp_load|tojson }};
+
+function openAllocate(aptId, customerName) {
+  currentAptId = aptId;
+  document.getElementById('allocateFor').textContent = `Appointment for: ${customerName}`;
+  document.getElementById('allocateModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Show load warning when emp selected
+document.getElementById('empSelect').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  const load = parseInt(opt.dataset.load || 0);
+  const warning = document.getElementById('empLoadWarning');
+  const msg = document.getElementById('empLoadMsg');
+  if (load >= 2 && this.value) {
+    warning.style.display = 'block';
+    msg.textContent = `${opt.text.split(' (')[0]} already has ${load} active customers (maximum reached). Cannot assign more.`;
+    document.getElementById('allocateBtn').disabled = true;
+  } else if (load === 1 && this.value) {
+    warning.style.display = 'block';
+    warning.style.background = '#fff7ed';
+    warning.style.borderColor = '#fed7aa';
+    warning.style.color = '#9a3412';
+    msg.textContent = `${opt.text.split(' (')[0]} has 1 active customer (1 slot remaining).`;
+    document.getElementById('allocateBtn').disabled = false;
+  } else {
+    warning.style.display = 'none';
+    document.getElementById('allocateBtn').disabled = false;
+  }
+});
+
+async function confirmAllocate() {
+  const empId = document.getElementById('empSelect').value;
+  const counter = document.getElementById('counterSelect').value;
+  const btn = document.getElementById('allocateBtn');
+  setLoading(btn, true);
+  const data = await nbFetch(`/admin/appointments/${currentAptId}/allocate`, {
+    method: 'POST', body: { employee_id: empId ? parseInt(empId) : null, counter }
+  });
+  setLoading(btn, false);
+  if (data.success) {
+    showToast('✅ ' + data.message, 'success');
+    closeModal('allocateModal');
+    setTimeout(() => location.reload(), 800);
+  } else {
+    showToast(data.message, 'error');
+  }
+}
+
+let rejectAptId = null;
+function rejectApt(aptId) { rejectAptId = aptId; document.getElementById('rejectAptModal').classList.add('open'); }
+async function confirmRejectApt() {
+  const reason = document.getElementById('rejectAptReason').value;
+  const data = await nbFetch(`/admin/appointments/${rejectAptId}/reject`, { method: 'POST', body: { reason } });
+  closeModal('rejectAptModal');
+  if (data.success) { showToast('Appointment rejected', 'success'); setTimeout(() => location.reload(), 800); }
+}
+</script>
+{% endblock %}
